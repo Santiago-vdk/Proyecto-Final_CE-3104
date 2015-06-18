@@ -4,11 +4,12 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
-//import org.apache.poi.ss.usermodel.Cell;
-//import org.apache.poi.ss.usermodel.CreationHelper;
-//import org.apache.poi.ss.usermodel.Row;
-//import org.apache.poi.ss.usermodel.Sheet;
-//import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -19,7 +20,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-//import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+
 
 public class Facade {
 
@@ -497,44 +498,44 @@ public class Facade {
     
     
     
-//
-//    public void llenarTablaExcel(String pNombre) throws FileNotFoundException, IOException {
-//        Workbook wb = new HSSFWorkbook();
-//        //Workbook wb = new XSSFWorkbook();
-//        CreationHelper createHelper = wb.getCreationHelper();
-//        Sheet sheet = wb.createSheet(pNombre);
-//        for (int i = 0; i <= _tabla.getFilas().getTam(); i++) {
-//            Row row = sheet.createRow((short) i);
-//            for (int j = 0; j <= _tabla.getColumnas().getTam(); j++) {
-//
-//                if (i == 0 && j != _tabla.getColumnas().getTam()) {
-//                    Cell cell = row.createCell(j + 1);
-//                    cell.setCellValue(_tabla.getColumnas().buscarPos(j));
-//                } else {
-//                    if (j == 0) {
-//                        Cell cell = row.createCell(j);
-//
-//                        cell.setCellValue(_tabla.getFilas().buscarPos(i - 1));
-//                    } else {
-//                        if (i != 0) {
-//                            Cell cell = row.createCell(j);
-//                            cell.setCellValue(_tabla.buscarEnPos(i - 1, j - 1));
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        Sheet sheetB = wb.createSheet("B");
-//        for (int i = 0; i < _resumenTablaPNR.getTam(); i++) {
-//            Row row = sheetB.createRow((short) i);
-//            Cell cell = row.createCell(0);
-//            cell.setCellValue(_resumenTablaPNR.buscarPos(i));
-//        }
-//        FileOutputStream fileOut = new FileOutputStream("workbook.xls");
-//        wb.write(fileOut);
-//        fileOut.close();
-//    }
+
+    public void llenarTablaExcel(String pNombre) throws FileNotFoundException, IOException {
+        Workbook wb = new HSSFWorkbook();
+        //Workbook wb = new XSSFWorkbook();
+        CreationHelper createHelper = wb.getCreationHelper();
+        Sheet sheet = wb.createSheet(pNombre);
+        for (int i = 0; i <= _tabla.getFilas().getTam(); i++) {
+            Row row = sheet.createRow((short) i);
+            for (int j = 0; j <= _tabla.getColumnas().getTam(); j++) {
+
+                if (i == 0 && j != _tabla.getColumnas().getTam()) {
+                    Cell cell = row.createCell(j + 1);
+                    cell.setCellValue(_tabla.getColumnas().buscarPos(j));
+                } else {
+                    if (j == 0) {
+                        Cell cell = row.createCell(j);
+
+                        cell.setCellValue(_tabla.getFilas().buscarPos(i - 1));
+                    } else {
+                        if (i != 0) {
+                            Cell cell = row.createCell(j);
+                            cell.setCellValue(_tabla.buscarEnPos(i - 1, j - 1));
+                        }
+                    }
+                }
+            }
+        }
+
+        Sheet sheetB = wb.createSheet("B");
+        for (int i = 0; i < _resumenTablaPNR.getTam(); i++) {
+            Row row = sheetB.createRow((short) i);
+            Cell cell = row.createCell(0);
+            cell.setCellValue(_resumenTablaPNR.buscarPos(i));
+        }
+        FileOutputStream fileOut = new FileOutputStream("workbook.xls");
+        wb.write(fileOut);
+        fileOut.close();
+    }
 
     /**
      * @return the _producciones
