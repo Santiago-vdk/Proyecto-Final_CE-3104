@@ -46,14 +46,14 @@ public class Server {
 
                     //load server private key
                     KeyStore serverKeys = KeyStore.getInstance("JKS");
-                    serverKeys.load(new FileInputStream("C:\\Program Files (x86)\\Java\\jre1.8.0_45\\lib\\security\\plainserver.jks"), "password".toCharArray());
+                    serverKeys.load(new FileInputStream("certificates/server/plainserver.jks"), "password".toCharArray());
                     KeyManagerFactory serverKeyManager = KeyManagerFactory.getInstance("SunX509");
                     //System.out.println(KeyManagerFactory.getDefaultAlgorithm());
                     //System.out.println(serverKeyManager.getProvider());
                     serverKeyManager.init(serverKeys, "password".toCharArray());
                     //load client public key
                     KeyStore clientPub = KeyStore.getInstance("JKS");
-                    clientPub.load(new FileInputStream("C:\\Program Files (x86)\\Java\\jre1.8.0_45\\lib\\security\\clientpub.jks"), "password".toCharArray());
+                    clientPub.load(new FileInputStream("certificates/server/clientpub.jks"), "password".toCharArray());
                     TrustManagerFactory trustManager = TrustManagerFactory.getInstance("SunX509");
                     trustManager.init(clientPub);
                     //use keys to create SSLSoket
