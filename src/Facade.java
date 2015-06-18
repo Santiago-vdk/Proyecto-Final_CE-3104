@@ -121,60 +121,108 @@ public class Facade {
             System.out.println("ERROR AL AÑADIR REGISTRO!!");
         }
     }
-
-    public void insertarHeaders() {
+    
+    public void insertarHeaders() {   
         ListaString temporal = new ListaString();
         for (int i = 0; i < _producciones.getTam(); i++) {
             temporal.insertar(_producciones.buscarPos(i).getIzq());
         }
         getTabla().setFilas(temporal); //getTabla().setColumnas(temporal);
-        ListaString filas = new ListaString();
+        ListaString columnas = new ListaString();
         Produccion temporal2 = _producciones.getHead();
         while (temporal2 != null) {
             NodoString temporal3 = temporal2.getDer().getHead();
             while (temporal3 != null) {
-                int k = 1;
                 String ladoDerecho = temporal3.getStr();
-                String[] partesLadoDerecho = ladoDerecho.split("|");
-                while (k < partesLadoDerecho.length) {
-                    char charAt2 = partesLadoDerecho[k].charAt(0);
-                    if ((partesLadoDerecho[k].compareTo(partesLadoDerecho[k].toUpperCase()) != 0 && Character.isLetter(charAt2) == true && partesLadoDerecho[k].compareTo("ñ") != 0) || (Character.isLetter(charAt2) == false && partesLadoDerecho[k].compareTo("ñ") != 0)) {
-                        if ((k + 1 < partesLadoDerecho.length)
-                                && ((partesLadoDerecho[k + 1].compareTo(partesLadoDerecho[k + 1].toUpperCase()) == 0
-                                && Character.isLetter(charAt2) == true && partesLadoDerecho[k + 1].compareTo("ñ") != 0)
-                                || (Character.isLetter(charAt2) == false && partesLadoDerecho[k + 1].compareTo("ñ") != 0))) {
-                            if (filas.buscarElem(partesLadoDerecho[k]) == -1) {
-                                filas.insertar(partesLadoDerecho[k]);
-                            }
-                            k++;
-                        } else {
-                            int g = k;
-                            String terminalDeVariosCaracteres = "";
-                            while (g < partesLadoDerecho.length
-                                    && ((partesLadoDerecho[g].compareTo(partesLadoDerecho[g].toUpperCase()) != 0
-                                    && Character.isLetter(charAt2) == true && partesLadoDerecho[g].compareTo("ñ") != 0)
-                                    || (Character.isLetter(charAt2) == false && partesLadoDerecho[g].compareTo("ñ") != 0))) {
+                while (ladoDerecho.length() > 0) {
+                    
+                    String[] partesLadoDerecho = ladoDerecho.split("|");
+                    char charAt2 = partesLadoDerecho[0].charAt(0);
+                    if ((partesLadoDerecho[0].compareTo(partesLadoDerecho[0].toUpperCase()) != 0)
+                            && (Character.isLetter(charAt2) == true) && (partesLadoDerecho[0].compareTo("ñ") != 0)
+                            || (Character.isLetter(charAt2) == false && partesLadoDerecho[0].compareTo("ñ") != 0)) {
 
-                                terminalDeVariosCaracteres = terminalDeVariosCaracteres + partesLadoDerecho[g];
-                                g++;
-                            }
-                            k = g + 1;
-                            if (filas.buscarElem(terminalDeVariosCaracteres) == -1) {
-                                filas.insertar(terminalDeVariosCaracteres);
-                            }
+                        int indiceEspacio = ladoDerecho.indexOf(" ", 0);
+                        String terminal = ladoDerecho.substring(0, indiceEspacio);
+                        if (columnas.buscarElem(terminal) == -1) {
+                            System.out.println(terminal);
+                            columnas.insertar(terminal);
                         }
-                    } else {
-                        k++;
+                        ladoDerecho = ladoDerecho.substring(terminal.length()+1);
                     }
-
+                    else{
+                        int indiceEspacio = ladoDerecho.indexOf(" ", 0);
+                        String terminal = ladoDerecho.substring(0, indiceEspacio);
+                        ladoDerecho = ladoDerecho.substring(terminal.length()+1);
+                    }
+                    
+                    
                 }
                 temporal3 = temporal3.getNext();
             }
-            temporal2 = temporal2.getNext();
+
+            temporal2=temporal2.getNext();
         }
-        filas.insertar("$");
-        getTabla().setColumnas(filas); //getTabla().setFilas(filas);
+        getTabla().setColumnas(columnas);
+        
     }
+    
+    
+//
+//    public void insertarHeaders2() {
+//        ListaString temporal = new ListaString();
+//        for (int i = 0; i < _producciones.getTam(); i++) {
+//            temporal.insertar(_producciones.buscarPos(i).getIzq());
+//        }
+//        getTabla().setFilas(temporal); //getTabla().setColumnas(temporal);
+//        ListaString filas = new ListaString();
+//        Produccion temporal2 = _producciones.getHead();
+//        while (temporal2 != null) {
+//            NodoString temporal3 = temporal2.getDer().getHead();
+//            while (temporal3 != null) {
+//                int k = 1;
+//                String ladoDerecho = temporal3.getStr();
+//                String[] partesLadoDerecho = ladoDerecho.split("|");
+//                while (k < partesLadoDerecho.length) {
+//                    char charAt2 = partesLadoDerecho[k].charAt(0);
+//                    if ((partesLadoDerecho[k].compareTo(partesLadoDerecho[k].toUpperCase()) != 0 && Character.isLetter(charAt2) == true && partesLadoDerecho[k].compareTo("ñ") != 0) 
+//                            || (Character.isLetter(charAt2) == false && partesLadoDerecho[k].compareTo("ñ") != 0)) {
+//                        if ((k + 1 < partesLadoDerecho.length)
+//                                && ((partesLadoDerecho[k + 1].compareTo(partesLadoDerecho[k + 1].toUpperCase()) == 0
+//                                && Character.isLetter(charAt2) == true && partesLadoDerecho[k + 1].compareTo("ñ") != 0)
+//                                || (Character.isLetter(charAt2) == false && partesLadoDerecho[k + 1].compareTo("ñ") != 0))) {
+//                            if (filas.buscarElem(partesLadoDerecho[k]) == -1) {
+//                                filas.insertar(partesLadoDerecho[k]);
+//                            }
+//                            k++;
+//                        } else {
+//                            int g = k;
+//                            String terminalDeVariosCaracteres = "";
+//                            while (g < partesLadoDerecho.length
+//                                    && ((partesLadoDerecho[g].compareTo(partesLadoDerecho[g].toUpperCase()) != 0
+//                                    && Character.isLetter(charAt2) == true && partesLadoDerecho[g].compareTo("ñ") != 0)
+//                                    || (Character.isLetter(charAt2) == false && partesLadoDerecho[g].compareTo("ñ") != 0))) {
+//
+//                                terminalDeVariosCaracteres = terminalDeVariosCaracteres + partesLadoDerecho[g];
+//                                g++;
+//                            }
+//                            k = g + 1;
+//                            if (filas.buscarElem(terminalDeVariosCaracteres) == -1) {
+//                                filas.insertar(terminalDeVariosCaracteres);
+//                            }
+//                        }
+//                    } else {
+//                        k++;
+//                    }
+//
+//                }
+//                temporal3 = temporal3.getNext();
+//            }
+//            temporal2 = temporal2.getNext();
+//        }
+//        filas.insertar("$");
+//        getTabla().setColumnas(filas); //getTabla().setFilas(filas);
+//    }
 
     public void calcularPNR() {
         _tabla.llenarTabla(_tabla.getFilas().getTam(), _tabla.getColumnas().getTam()); //_tabla.llenarTabla(_tabla.getColumnas().getTam(), _tabla.getFilas().getTam()); 
@@ -347,8 +395,14 @@ public class Facade {
             NodoString temporal2 = temporal.getDer().getHead();
             while (temporal2 != null) {
                 if (temporal2.getStr().indexOf(pNombre) != -1) {
-                    if (temporal2.getStr().indexOf(pNombre) != temporal2.getStr().length() - 1) {
-                        ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre) + 1));
+                    
+                    
+                    String cortado = temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre),temporal2.getStr().length());
+                    int indiceEspacio = cortado.indexOf(" ", 0);
+                    String palabra = cortado.substring(0,indiceEspacio);
+                    
+                    if (temporal2.getStr().indexOf(pNombre)+palabra.length() != temporal2.getStr().length() - 1) {
+                        ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre)+palabra.length()+1));
                         if (resultadoParcial.buscarElem("ñ") == -1) {//no cumple regla 3
                             result = sumarListaString(result, resultadoParcial);
                         } else {//cumple regla 3
@@ -372,13 +426,18 @@ public class Facade {
     }
 
     public String getTerminal(String pString) {
-        int i = 1;
-        while (i < pString.length() && pString.substring(i, i + 1).compareTo((pString.substring(i, i + 1)).toLowerCase()) == 0) {
-            i++;
-        }
-        return pString.substring(0, i);
+//        int i = 1;
+//        while (i < pString.length() && pString.substring(i, i + 1).compareTo((pString.substring(i, i + 1)).toLowerCase()) == 0) {
+//            i++;
+//        }
+        int indiceEspacio = pString.indexOf(" ", 0);
+        String palabra = pString.substring(0, indiceEspacio);
+        //return pString.substring(0, i);
+            return palabra;
 
     }
+    
+    
 
     public ListaString getPrimeroDer(String pNombre) {
         ListaString result = new ListaString();
@@ -386,8 +445,16 @@ public class Facade {
 
         char charAt2 = caracter.charAt(0);
         if (caracter.compareTo(caracter.toUpperCase()) == 0 && Character.isLetter(charAt2)) {
-            ListaString resultadoTemporal = getPrimero(caracter);
-            result = sumarListaString(result, resultadoTemporal);
+            int indiceEspacio = pNombre.indexOf(" ", 0);
+            if(indiceEspacio != -1){
+                String palabra = pNombre.substring(0, indiceEspacio);
+                ListaString resultadoTemporal = getPrimero(palabra);
+                result = sumarListaString(result, resultadoTemporal);
+            }
+            else{
+                ListaString resultadoTemporal = getPrimero(pNombre);
+                result = sumarListaString(result, resultadoTemporal);
+            }
         } else {
             if (result.buscarElem(getTerminal(pNombre)) == -1) {
                 result.insertar(getTerminal(pNombre));
@@ -406,10 +473,14 @@ public class Facade {
             String caracter = (derecha.buscarPos(contador)).substring(0, 1);
             char charAt2 = caracter.charAt(0);
             if (caracter.compareTo(caracter.toUpperCase()) == 0 && Character.isLetter(charAt2)) {
-                ListaString resultadoTemporal = getPrimero(caracter);
-                result = sumarListaString(result, resultadoTemporal);
+                int indiceEspacio = derecha.buscarPos(contador).indexOf(" ", 0);
+                String palabra = derecha.buscarPos(contador).substring(0, indiceEspacio);
+                if(palabra.compareTo(pNombre)!=0){
+                    ListaString resultadoTemporal = getPrimero(palabra);
+                    result = sumarListaString(result, resultadoTemporal);
+                }
             } else {
-                if (result.buscarElem(getTerminal(pNombre)) == -1) {
+                if (result.buscarElem(getTerminal(derecha.buscarPos(contador))) == -1) {
                     result.insertar(getTerminal(derecha.buscarPos(contador)));
                 }
             }
