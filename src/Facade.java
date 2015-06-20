@@ -36,32 +36,35 @@ public class Facade {
 
     }
 
-    public String ejecutarPrueba(String pPrueba) {
+    public String ejecutarPrueba(String pPrueba) {//analisador sintactico
         String entrada = pPrueba;
-        String pila = _producciones.getHead().getIzq() + "$";
+        String pila = _producciones.getHead().getIzq() + " $";
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
-            int i = 1;
-            char charAt2 = pila.substring(0, i).charAt(0);
+            char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
                 return "Error 1, terminal desconocido.";
-            } else if ((pila.substring(0, i).compareTo(pila.substring(0, i).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
-                String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(pila.substring(0, i)), _tabla.getColumnas().buscarElem(terminal));
+            } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
+                int indiceEspacio = pila.indexOf(" ", 0);
+                String palabra = pila.substring(0, indiceEspacio);
+                String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
                     return "Error 2, casilla nula en la tabla.";
                 } else {
-                    tmp = tmp.substring(3);
+                    int indice = tmp.indexOf("->");
+                    tmp = tmp.substring(indice+2);
                     if (tmp.compareTo("ñ") == 0) {
-                        pila = pila.substring(1);
+                        pila = pila.substring(indiceEspacio+1);
                     } else {
-                        pila = pila.replaceFirst(pila.substring(0, i), tmp);
+                        String palabra2 =palabra + " "; 
+                        pila = pila.replaceFirst(palabra2, tmp);
                     }
                 }
             } else {
                 String terminalEnPila = extraerTerminal(pila);
                 if (terminalEnPila.compareTo(terminal) == 0) {
-                    entrada = entrada.substring(terminal.length());
-                    pila = pila.substring(terminal.length());
+                    entrada = entrada.substring(terminal.length()+1);
+                    pila = pila.substring(terminal.length()+1);
                 } else {
                     return "Error 3, comparacion pila-entrada FALLIDA.";
                 }
@@ -276,73 +279,77 @@ public class Facade {
 
     }
 
-    public String identificador(String pEntrada) {
-        char charAt1 = pEntrada.charAt(0);
-        boolean flagLetra = false;
-        if(!Character.isAlphabetic(charAt1) && !Character.isDigit(charAt1) && pEntrada.length() == 1){
-            return pEntrada;
-        }
-        for (int i = 0; i < pEntrada.length(); i++) {
-            char charAt2 = pEntrada.charAt(i);
-            if (Character.isAlphabetic(charAt2)) {
-                flagLetra = true;
-            }
-            else if (!Character.isDigit(charAt2)){
-                return "-1";
-            }
-        }
-        if(flagLetra){
-            return "id";
-        }
-        else{
-            return "num";
-        }
-    }
+//    public String identificador(String pEntrada) {
+//        char charAt1 = pEntrada.charAt(0);
+//        boolean flagLetra = false;
+//        if(!Character.isAlphabetic(charAt1) && !Character.isDigit(charAt1) && pEntrada.length() == 1){
+//            return pEntrada;
+//        }
+//        for (int i = 0; i < pEntrada.length(); i++) {
+//            char charAt2 = pEntrada.charAt(i);
+//            if (Character.isAlphabetic(charAt2)) {
+//                flagLetra = true;
+//            }
+//            else if (!Character.isDigit(charAt2)){
+//                return "-1";
+//            }
+//        }
+//        if(flagLetra){
+//            return "id";
+//        }
+//        else{
+//            return "num";
+//        }
+//    }
+    
+
+    
+    
         
-    public void analisisLexico() throws UnsupportedEncodingException, FileNotFoundException, IOException {
-        String path = "Evaluaciones.txt";
-        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path), "ISO-8859-1"));
-        String line;
-        String parseado = "";
-        while ((line = in.readLine()) != null) {
-            String[] tmp = line.split("|"); //Agrga espacio
-            String palabra = "";
-            for (int i = 0; i < tmp.length; i++) { //Elimina espacios
-                //System.out.println(i + "," + line.length());
-
-                if (tmp[i].compareTo(" ") != 0) {
-                    palabra = palabra + tmp[i];
-                    if (i == tmp.length - 1) {
-                        String terminal = identificador(palabra);
-                        if (terminal.compareTo("-1") == 0) {
-                            logFile("Error 5, Componente lexico no encontrado");
-                            break;
-                        } else {
-                            parseado = parseado + terminal;
-                        }
-                    }
-                } else if (tmp[i].compareTo(" ") == 0 && palabra.compareTo("") != 0) {
-                    String terminal = identificador(palabra);
-
-                    if (terminal.compareTo("-1") == 0) {
-                        logFile("Error 5, Componente lexico no encontrado");
-
-                        break;
-                        //return "Error 1"; Escribir en archivo error
-                    } else {
-                        parseado = parseado + terminal;
-                    }
-                    palabra = "";
-                }
-            }
-            parseado = parseado + "$";
-            System.out.println(parseado);
-            logFile(ejecutarPrueba(parseado));
-
-        }
-
-        in.close();
-    }
+//    public void analisisLexico() throws UnsupportedEncodingException, FileNotFoundException, IOException {
+//        String path = "Evaluaciones.txt";
+//        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path), "ISO-8859-1"));
+//        String line;
+//        String parseado = "";
+//        while ((line = in.readLine()) != null) {
+//            String[] tmp = line.split("|"); //Agrga espacio
+//            String palabra = "";
+//            for (int i = 0; i < tmp.length; i++) { //Elimina espacios
+//                //System.out.println(i + "," + line.length());
+//
+//                if (tmp[i].compareTo(" ") != 0) {
+//                    palabra = palabra + tmp[i];
+//                    if (i == tmp.length - 1) {
+//                        String terminal = identificador(palabra);
+//                        if (terminal.compareTo("-1") == 0) {
+//                            logFile("Error 5, Componente lexico no encontrado");
+//                            break;
+//                        } else {
+//                            parseado = parseado + terminal;
+//                        }
+//                    }
+//                } else if (tmp[i].compareTo(" ") == 0 && palabra.compareTo("") != 0) {
+//                    String terminal = identificador(palabra);
+//
+//                    if (terminal.compareTo("-1") == 0) {
+//                        logFile("Error 5, Componente lexico no encontrado");
+//
+//                        break;
+//                        //return "Error 1"; Escribir en archivo error
+//                    } else {
+//                        parseado = parseado + terminal;
+//                    }
+//                    palabra = "";
+//                }
+//            }
+//            parseado = parseado + "$";
+//            System.out.println(parseado);
+//            logFile(ejecutarPrueba(parseado));
+//
+//        }
+//
+//        in.close();
+//    }
 
     public void leerGramatica() throws UnsupportedEncodingException, FileNotFoundException, IOException {
         String path = "Gramatica.txt";
