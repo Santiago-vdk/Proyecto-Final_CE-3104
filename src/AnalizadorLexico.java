@@ -12,8 +12,8 @@ import java.util.ArrayList;
  * @author victor
  */
 public class AnalizadorLexico {
-    public ArrayList<String[]> tablaSimb=new ArrayList(); 
-    public ArrayList<String> resultado = new ArrayList();
+    private ArrayList<String[]> tablaSimb=new ArrayList(); 
+    private ArrayList<String> resultado = new ArrayList();
     private boolean simb=false;//determina si se esta definiendo un nuevo simbolo
     private String[] tokIns;
     private String[] simbTemp= new String[6];  
@@ -215,5 +215,16 @@ public class AnalizadorLexico {
             simbTemp[i]="0";
             i++;
         }
+    }
+    
+    
+    public String getResultado()
+    {
+        String temp="";
+        for(String s: resultado)
+        {
+            temp=temp+s+" ";
+        }
+        return temp;
     }
 }
