@@ -27,29 +27,32 @@ public class Facade {
     private ListaProduccion _producciones;
     private tabla _tabla;
     private ListaString _resumenTablaPNR;
+    private ListaString _ListaErrores;
 
     public Facade() throws FileNotFoundException {
         _producciones = new ListaProduccion();
         _tabla = new tabla();
         _resumenTablaPNR = new ListaString();
+        _ListaErrores = new ListaString();
         
 
     }
 
-    public String ejecutarPrueba(String pPrueba) {//analisador sintactico
+    public void AnalisisSintactico(String pPrueba) {//analisador sintactico
         String entrada = pPrueba;
+        int contador = 0;
         String pila = _producciones.getHead().getIzq() + " $";
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
             char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
-                return "Error 1, terminal desconocido.";
+                getListaErrores().insertar("Analisis Sintactico. Error: terminal desconocido.");
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
                 String palabra = pila.substring(0, indiceEspacio);
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
-                    return "Error 2, casilla nula en la tabla.";
+                    getListaErrores().insertar("Analisis Sintactico.  Error: casilla nula en la tabla");
                 } else {
                     int indice = tmp.indexOf("->");
                     tmp = tmp.substring(indice+2);
@@ -66,15 +69,15 @@ public class Facade {
                     entrada = entrada.substring(terminal.length()+1);
                     pila = pila.substring(terminal.length()+1);
                 } else {
-                    return "Error 3, comparacion pila-entrada FALLIDA.";
+                    getListaErrores().insertar("Analisis Sintactico.  Error: comparacion pila-entrada FALLIDA.");
                 }
             }
         }
         if(pila.compareTo(entrada) == 0){
-            return "SUCCESS, Linea Valida";
+            //"SUCCESS, Linea Valida";
         }
         else{
-            return "Error 4, valor despues de '$' en la entrada.";
+            getListaErrores().insertar("Analisis Sintactico.  Error: valor despues de '$' en la entrada.");
         }
         
     }
@@ -90,23 +93,23 @@ public class Facade {
         return "-1";
     }
 
-    public void leerPrueba() throws IOException {
-        BufferedReader br = new BufferedReader(new FileReader("Evaluaciones.txt"));
-        try {
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-
-            while (line != null) {
-                sb.append(line);
-                sb.append(System.lineSeparator());
-                logFile(ejecutarPrueba(line));
-                line = br.readLine();
-
-            }
-        } finally {
-            br.close();
-        }
-    }
+//    public void leerPrueba() throws IOException {
+//        BufferedReader br = new BufferedReader(new FileReader("Evaluaciones.txt"));
+//        try {
+//            StringBuilder sb = new StringBuilder();
+//            String line = br.readLine();
+//
+//            while (line != null) {
+//                sb.append(line);
+//                sb.append(System.lineSeparator());
+//                logFile(ejecutarPrueba(line));
+//                line = br.readLine();
+//
+//            }
+//        } finally {
+//            br.close();
+//        }
+//    }
 
     public void logFile(String pLog) throws FileNotFoundException, IOException {
         File log = new File("ResultadoPredictivoNoRecursivoPila.txt");
@@ -684,6 +687,20 @@ public class Facade {
     
     
     */
+
+    /**
+     * @return the _ListaErrores
+     */
+    public ListaString getListaErrores() {
+        return _ListaErrores;
+    }
+
+    /**
+     * @param _ListaErrores the _ListaErrores to set
+     */
+    public void setListaErrores(ListaString _ListaErrores) {
+        this._ListaErrores = _ListaErrores;
+    }
     
     
 }
