@@ -25,11 +25,10 @@ public class ListaString {
         _tail = plista.getTail();
         _tam = _tam + plista.getTam();
         }
-        else{
-           _head.setNext(plista.getHead());
-           plista.getHead().setPrev(_head);
+        else{//lista inicial vacia
+           _head = plista.getHead();
            _tail = plista.getTail();
-        _tam = _tam + plista.getTam();
+        _tam = plista.getTam();
         }
         
     }
