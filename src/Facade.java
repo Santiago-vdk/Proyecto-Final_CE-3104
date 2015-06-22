@@ -1076,9 +1076,12 @@ public class Facade {
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
                 String palabra = pila.substring(0, indiceEspacio);
+                System.out.println(palabra);
+                System.out.println(terminal);
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
                     _ListaErrores.insertar("Analisis Sintactico. Error: casilla nula en la tabla. En linea: " + String.valueOf(contador));
+                    System.out.println("Error: corazon. En linea: " + String.valueOf(contador));
                     break;
                 } else {
                     int indice = tmp.indexOf("->");
@@ -1097,6 +1100,7 @@ public class Facade {
                     pila = pila.substring(terminal.length() + 1);
                 } else {
                     _ListaErrores.insertar("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
+                    System.out.println("Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
                     break;
                 }
             }
@@ -1110,14 +1114,17 @@ public class Facade {
             
             System.out.println("error");
             _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
+            System.out.println("Error: valor depues de $. En linea: " + String.valueOf(contador));
         }
 
     }
 
     public String extraerTerminal(String pString) {
         NodoString temporal = _tabla.getColumnas().getHead();
+        int indice = pString.indexOf(" ",0);
+        String comparando = pString.substring(0, indice);
         while (temporal != null) {
-            if (pString.indexOf(temporal.getStr()) == 0) {
+            if (comparando.equals(temporal.getStr())) {
                 return temporal.getStr();
             }
             temporal = temporal.getNext();
@@ -1420,7 +1427,6 @@ public class Facade {
     }
 
     public ListaString getSiguiente(String pNombre) {
-        
         _prodCalculadas.insertar(pNombre);
         ListaString result = new ListaString();
         Produccion temporal = _producciones.getHead();
@@ -1433,13 +1439,19 @@ public class Facade {
                 if (temporal2.getStr().indexOf(pNombre) != -1) {
 
                     String cortado = temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre), temporal2.getStr().length());
+                    
                     int indiceEspacio = cortado.indexOf(" ", 0);
                     String palabra = cortado.substring(0, indiceEspacio);
                     if (temporal2.getStr().indexOf(pNombre) + palabra.length() != temporal2.getStr().length() - 1) {
+                        
                         ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre) + palabra.length() + 1));
+                        
+                        
                         
                         if (resultadoParcial.buscarElem("ñ ") == -1 && resultadoParcial.buscarElem("ñ") == -1) {//no cumple regla 3
                             result = sumarListaString(result, resultadoParcial);
+                            
+                       
                         } else {//cumple regla 3
                             resultadoParcial.borrarElem("ñ ");
                            resultadoParcial.borrarElem("ñ"); 
