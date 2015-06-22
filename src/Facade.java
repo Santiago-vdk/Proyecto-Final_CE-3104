@@ -1050,6 +1050,7 @@ public class Facade {
      * **********************************************************************************************************************
      */
     public void AnalisisSintactico(String pEntrada) {//analisador sintactico
+        int contador=1;
         AnalizadorLexico lexico = new AnalizadorLexico();
         lexico.analizar(pEntrada);
         String entrada = lexico.getResultado();
@@ -1058,15 +1059,18 @@ public class Facade {
         String pila = _producciones.getHead().getIzq() + " $";
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
+            if(terminal.equals("newline")){
+                contador++;
+            }
             char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
-                getListaErrores().insertar("Analisis Sintactico. Error: terminal desconocido.");
+                _ListaErrores.insertar("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
                 String palabra = pila.substring(0, indiceEspacio);
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
-                    getListaErrores().insertar("Analisis Sintactico.  Error: casilla nula en la tabla");
+                    _ListaErrores.insertar("Analisis Sintactico. Error: casilla nula en la tabla. En linea: " + String.valueOf(contador));
                 } else {
                     int indice = tmp.indexOf("->");
                     tmp = tmp.substring(indice + 2);
@@ -1083,7 +1087,7 @@ public class Facade {
                     entrada = entrada.substring(terminal.length() + 1);
                     pila = pila.substring(terminal.length() + 1);
                 } else {
-                    getListaErrores().insertar("Analisis Sintactico.  Error: comparacion pila-entrada FALLIDA.");
+                    _ListaErrores.insertar("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
                 }
             }
         }
