@@ -70,7 +70,7 @@ public class com {
     }
     
     
-   public void intepretar(ArrayList<String> x) throws InterruptedException{
+   public void interpretar(ArrayList<String> x) throws InterruptedException{
         open();
         for(int i=0;i<x.size();i=i+2){
            if(x.get(i).equals("0")){
