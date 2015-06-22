@@ -72,7 +72,7 @@ public class AnalizadorLexico {
                 }
                 else
                 {
-                    listaErrores.insertar("Analizador Lexico. Error: Tipo de dato desconocido, en linea: "+String.valueOf(contadorlinea));/*codigo para meter un error en el archivo de errores*/
+                    listaErrores.insertar("Analizador Lexico. Error: Tipo de dato desconocido. en linea: "+String.valueOf(contadorlinea));/*codigo para meter un error en el archivo de errores*/
                 }
                 
             }
@@ -93,7 +93,7 @@ public class AnalizadorLexico {
                 }
                 else
                 {
-                    listaErrores.insertar("Analizador Lexico. Error: ID de puerta invalido, en linea: "+String.valueOf(contadorlinea)); /*codigo para meter un error por id de puerta invalida*/
+                    listaErrores.insertar("Analizador Lexico. Error: ID de puerta invalido. en linea: "+String.valueOf(contadorlinea)); /*codigo para meter un error por id de puerta invalida*/
                 }
                     
             }
@@ -111,7 +111,7 @@ public class AnalizadorLexico {
             {
                 resultado.add("id");
                 System.out.println("error token no identificado");
-                listaErrores.insertar("Analizador Lexico. Error: ID invalido, en linea: "+String.valueOf(contadorlinea)); 
+                listaErrores.insertar("Analizador Lexico. Error: ID invalido. en linea: "+String.valueOf(contadorlinea)); 
                 /*codigo para meter un error en el archivo de errores*/
             }
         }
