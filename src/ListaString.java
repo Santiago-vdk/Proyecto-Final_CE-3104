@@ -15,6 +15,25 @@ public class ListaString {
         
     }
     
+    public void sumarListas(ListaString plista){
+        if(plista == null){
+            //suma lista vacia
+        }
+        else if(_tail != null){
+        _tail.setNext(plista.getHead());
+        plista.getHead().setPrev(_tail);
+        _tail = plista.getTail();
+        _tam = _tam + plista.getTam();
+        }
+        else{
+           _head.setNext(plista.getHead());
+           plista.getHead().setPrev(_head);
+           _tail = plista.getTail();
+        _tam = _tam + plista.getTam();
+        }
+        
+    }
+    
     public int buscarElem(String pelem){
         NodoString tmp = _head;
         int i = 0;
