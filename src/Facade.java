@@ -44,7 +44,7 @@ public class Facade {
     
     //**********************************************************************************************************************************************
 
-    public void AnalisisSemantico(String pEntrada) {
+    public void AnalisisSemantico(String pEntrada) throws InterruptedException {
         int contador = 1;
         String[] tokens = pEntrada.split("\\s+");
 
@@ -923,12 +923,12 @@ public class Facade {
                             && !tablaSimbolos.get(buscarSimbolo(t[i]))[5].equals("0")) {
                         return Float.valueOf(tablaSimbolos.get(buscarSimbolo(t[i]))[3]);
                     } else {
-                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida, en linea: " + String.valueOf(contador));
+                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida. en linea: " + String.valueOf(contador));
                         error = true;
                         return 0;
                     }
                 } else {
-                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada, en linea: " + String.valueOf(contador));
+                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada. en linea: " + String.valueOf(contador));
                     error = true;
                     return 0;
                 }
@@ -988,12 +988,12 @@ public class Facade {
                         }
 
                     } else {
-                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida, en linea: " + String.valueOf(contador));
+                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida. en linea: " + String.valueOf(contador));
                         error = true;
                         return 0;
                     }
                 } else {
-                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada, en linea: " + String.valueOf(contador));
+                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada. en linea: " + String.valueOf(contador));
                     error = true;
                     return 0;
                 }
@@ -1049,7 +1049,7 @@ public class Facade {
     /**
      * **********************************************************************************************************************
      */
-    public void AnalisisSintactico(String pEntrada) {//analisador sintactico
+    public void AnalisisSintactico(String pEntrada) throws InterruptedException {//analisador sintactico
         int contador=1;
         AnalizadorLexico lexico = new AnalizadorLexico();
         lexico.analizar(pEntrada);
@@ -1095,7 +1095,7 @@ public class Facade {
             //"SUCCESS, Linea Valida";
             AnalisisSemantico(pEntrada);
         } else {
-            getListaErrores().insertar("Analisis Sintactico.  Error: valor despues de '$' en la entrada.");
+            _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
         }
 
     }
