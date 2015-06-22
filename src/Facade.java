@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 public class Facade {
-
+    private com _comunicador;
     private ListaProduccion _producciones;
     private tabla _tabla;
     private ListaString _resumenTablaPNR;
@@ -38,6 +38,7 @@ public class Facade {
         _resumenTablaPNR = new ListaString();
         _ListaErrores = new ListaString();
         error = false;
+        _comunicador = new com();
 
     }
     
@@ -333,6 +334,10 @@ public class Facade {
                 
             }
 
+        }
+        
+        if(!error){
+            _comunicador.interpretar(ejecutable);
         }
 
     }
