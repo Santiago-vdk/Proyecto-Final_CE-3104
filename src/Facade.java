@@ -31,7 +31,7 @@ public class Facade {
     private ArrayList<String[]> tablaSimbolos = new ArrayList();
     private boolean error;
     private ArrayList<String> ejecutable=new ArrayList();
-    
+    private ListaString _prodCalculadas;
     public Facade() throws FileNotFoundException {
         _producciones = new ListaProduccion();
         _tabla = new tabla();
@@ -39,6 +39,7 @@ public class Facade {
         _ListaErrores = new ListaString();
         error = false;
         _comunicador = new com();
+        _prodCalculadas = new ListaString();
 
     }
     
@@ -1100,10 +1101,14 @@ public class Facade {
                 }
             }
         }
-        if (pila.compareTo("$") == 0 && entrada.length()==0) {
+        System.out.println(pila);
+        System.out.println(entrada);
+        if (pila.compareTo("$") == 0 && entrada.equals("newline ")) {
             System.out.println("SUCCESS, Linea Valida sintacticamente");
             AnalisisSemantico(pEntrada);
         } else {
+            
+            System.out.println("error");
             _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
         }
 
@@ -1261,6 +1266,7 @@ public class Facade {
             NodoString temporal2 = temporal.getDer().getHead();
             while (temporal2 != null) {
                 if (temporal2.getStr().compareTo("ñ ") == 0) {
+                    _prodCalculadas = new ListaString();//se resetea el contador para la recursividad en siguiente
                     ListaString resultadoTemporal = getSiguiente(temporal.getIzq());
                        //ListaString resultadoTemporal = new ListaString(); 
                     String stringTabla = "";
@@ -1414,6 +1420,8 @@ public class Facade {
     }
 
     public ListaString getSiguiente(String pNombre) {
+        
+        _prodCalculadas.insertar(pNombre);
         ListaString result = new ListaString();
         Produccion temporal = _producciones.getHead();
         if (pNombre.compareTo(temporal.getIzq()) == 0) {//regla 1
@@ -1427,21 +1435,21 @@ public class Facade {
                     String cortado = temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre), temporal2.getStr().length());
                     int indiceEspacio = cortado.indexOf(" ", 0);
                     String palabra = cortado.substring(0, indiceEspacio);
-
                     if (temporal2.getStr().indexOf(pNombre) + palabra.length() != temporal2.getStr().length() - 1) {
                         ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre) + palabra.length() + 1));
-                        System.out.println("en ::");
-                        if (resultadoParcial.buscarElem("ñ ") == -1) {//no cumple regla 3
-                        result = sumarListaString(result, resultadoParcial);
+                        
+                        if (resultadoParcial.buscarElem("ñ ") == -1 && resultadoParcial.buscarElem("ñ") == -1) {//no cumple regla 3
+                            result = sumarListaString(result, resultadoParcial);
                         } else {//cumple regla 3
                             resultadoParcial.borrarElem("ñ ");
+                           resultadoParcial.borrarElem("ñ"); 
                             
-                            if (pNombre.compareTo(temporal.getIzq()) != 0) {
+                            if (_prodCalculadas.buscarElem(temporal.getIzq()) == -1) {
                                 result = sumarListaString(result, getSiguiente(temporal.getIzq()));
                             }
                         }
                     } else {
-                        if (pNombre.compareTo(temporal.getIzq()) != 0) {
+                        if (_prodCalculadas.buscarElem(temporal.getIzq()) == -1) {
                             result = sumarListaString(result, getSiguiente(temporal.getIzq()));
                         }
                     }
