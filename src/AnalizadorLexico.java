@@ -57,6 +57,7 @@ public class AnalizadorLexico {
             }
             else if(tokIns[i].equals("newline")){
                 contadorlinea++;
+                resultado.add(tokIns[i]);
             }
             
             else if (tokIns[i].matches("const"))
