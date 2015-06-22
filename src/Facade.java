@@ -19,8 +19,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-
 
 public class Facade {
 
@@ -28,19 +28,1028 @@ public class Facade {
     private tabla _tabla;
     private ListaString _resumenTablaPNR;
     private ListaString _ListaErrores;
-
+    private ArrayList<String[]> tablaSimbolos = new ArrayList();
+    private boolean error;
+    private ArrayList<String> ejecutable=new ArrayList();
+    
     public Facade() throws FileNotFoundException {
         _producciones = new ListaProduccion();
         _tabla = new tabla();
         _resumenTablaPNR = new ListaString();
         _ListaErrores = new ListaString();
+        error = false;
+
+    }
+    
+    //**********************************************************************************************************************************************
+
+    public void AnalisisSemantico(String pEntrada) {
+        int contador = 1;
+        String[] tokens = pEntrada.split("\\s+");
+
+        for (int i = 0; i < tokens.length; i++) {//ciclo para armar la tabla de simbolos
+            if (tokens[i].equals("newline")) {
+                contador++;
+            } 
+            
+            else if (tokens[i].equals("declarar")) {
+                String[] temp = new String[6];
+                temp[0] = "id";//lexema
+                temp[3] = "-";//valor temporal
+                temp[5] = "0";//contador de usos
+                if (tokens[i + 1].equals("const")) {//si es const
+                    temp[4] = "1";//bool const
+                    temp[2] = tokens[i + 2];//tipo
+                    if (buscarSimbolo(tokens[i + 3]) == -1) {
+                        temp[1] = tokens[i + 3];
+                        tablaSimbolos.add(temp);
+                    } else {
+                        _ListaErrores.insertar("Analisis semantico. Error: Variable ya declarada. En linea: " + String.valueOf(contador));
+                    }
+                    i += 4;
+                } else {
+                    temp[4] = "0";//bool const
+                    temp[2] = tokens[i + 1];//tipo
+                    if (buscarSimbolo(tokens[i + 2]) == -1) {
+                        temp[1] = tokens[i + 2];
+                        tablaSimbolos.add(temp);
+                    } else {
+                        _ListaErrores.insertar("Analisis semantico. Error: Variable ya declarada. En linea: " + String.valueOf(contador));
+                    }
+                    i += 3;
+                }
+
+            } else if (tokens[i].equals("=")) {
+                if (buscarSimbolo(tokens[i - 1]) == -1) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
+                } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
+                } else {
+                    int indiceNL = buscarSigNL(i, tokens);
+                    String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
+                    if (indiceNL == i + 2) {
+
+                        if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        } else if (tipo.equals("char")) {
+                            if (tokens[i + 1].length() == 1) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else if (tipo.equals("string")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                        } else if (tipo.equals("int")) {
+                            if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
+
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else {
+                            if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        }
+                    } else {
+                        float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        if (tipo.equals("float")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                        } else if (tipo.equals("int")) {
+                            int temp2 = Float.floatToIntBits(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                        }
+                    }
+                    i += indiceNL - i - 1;
+                }
+
+            } else if (tokens[i].equals("mover")) {
+                int indiceNL = buscarSigNL(i, tokens);
+                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                    error = true;
+                    _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
+                } else {
+                    ejecutable.add(tokens[i + 1]);
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+                }
+                i += indiceNL - i - 1;
+            } else if (tokens[i].equals("si")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        i = cont4;
+
+                    } else {
+                        int indiceNL = buscarSigNL(i, tokens);
+                        i = indiceNL - 1;
+                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                    }
+
+                    /*saltarse el sino*/
+                } else {// no se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        if (tokens[cont4].equals("sino")) {
+                            /*llama a declaracionesAnidadas()*/
+                            if (tokens[cont4 + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = cont4 + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
+                                i = cont4;
+
+                            } else {
+                                int indiceNL = buscarSigNL(i, tokens);
+                                i = indiceNL - 1;
+                                expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                            }
+
+
+                       } 
+                        else{
+                        i=cont4;
+                        }
+                    }
+                    else {
+                        int indiceNL = buscarSigNL(i,tokens);
+                        if(tokens[indiceNL].equals("sino")){
+                            /*llamar funcion del sino*/
+                           if (tokens[indiceNL + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = indiceNL + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
+                                i = indiceNL;
+
+                            } else {
+                                int indiceNL2 = buscarSigNL(i, tokens);
+                                i = indiceNL2 - 1;
+                                expresionSi(cont2 + 3, indiceNL2 - 1, tokens, contador);
+                            }
+                        }
+                        else{
+                        i=indiceNL-1;
+                        }
+                        
+                    }
+                    
+
+                }
+            }
+            else if (tokens[i].equals("mientras")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (tokens[cont2+2].equals("{")) {
+                    int cont3 = 1;
+                    int cont4 = cont2 + 3;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("{")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals("}")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    i=indiceNL -1;
+                    expresionWhile(cont2+3,indiceNL-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    //mover indice
+                }
+
+
+            }
+            else if(tokens[i].equals("haga")){
+                if (tokens[i+1].equals("{")) {
+                    int cont1 = 1;
+                    int cont2 = i + 2;
+                    while (cont1 != 0) {
+                        if (tokens[cont2].equals("{")) {
+                            cont1++;
+                        } else if (tokens[cont2].equals("}")) {
+                            cont1--;
+                        }
+                        cont2++;
+                    }
+                    
+                    int cont3 = 1;
+                    int cont4 = cont2 + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
+                    expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    int cont3 = 1;
+                    int cont4 = indiceNL + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,indiceNL,tokens,contador);
+                    expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+                }
+                
+            }
+
+        }
+
+    }
+    
+    //**********************************************************************************************************************************************
+    
+    private void expresionSi(int a, int j, String[] tokens,int contador){
+
+        for (int i = a; i < j; i++) {//ciclo para armar la tabla de simbolos
+            if (tokens[i].equals("newline")) {
+                contador++;
+            } 
+            
+            else if (tokens[i].equals("=")) {
+                if (buscarSimbolo(tokens[i - 1]) == -1) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
+                } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
+                } else {
+                    int indiceNL = buscarSigNL(i, tokens);
+                    String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
+                    if (indiceNL == i + 2) {
+
+                        if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        } else if (tipo.equals("char")) {
+                            if (tokens[i + 1].length() == 1) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else if (tipo.equals("string")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                        } else if (tipo.equals("int")) {
+                            if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
+
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else {
+                            if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        }
+                    } else {
+                        float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        if (tipo.equals("float")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                        } else if (tipo.equals("int")) {
+                            int temp2 = Float.floatToIntBits(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                        }
+                    }
+                    i += indiceNL - i - 1;
+                }
+
+            } 
+            else if (tokens[i].equals("mover")) {
+                int indiceNL = buscarSigNL(i, tokens);
+                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                    error = true;
+                    _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
+                } else {
+                    ejecutable.add(tokens[i + 1]);
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+                }
+                i += indiceNL - i - 1;
+            } 
+            else if (tokens[i].equals("si")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        i = cont4;
+
+                    } else {
+                        int indiceNL = buscarSigNL(i, tokens);
+                        i = indiceNL - 1;
+                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                    }
+
+                    /*saltarse el sino*/
+                } else {// no se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        if (tokens[cont4].equals("sino")) {
+                            /*llama a declaracionesAnidadas()*/
+                            if (tokens[cont4 + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = cont4 + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
+                                i = cont4;
+
+                            } else {
+                                int indiceNL = buscarSigNL(i, tokens);
+                                i = indiceNL - 1;
+                                expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                            }
+
+
+                       } 
+                        else{
+                        i=cont4;
+                        }
+                    }
+                    else {
+                        int indiceNL = buscarSigNL(i,tokens);
+                        if(tokens[indiceNL].equals("sino")){
+                            /*llamar funcion del sino*/
+                           if (tokens[indiceNL + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = indiceNL + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
+                                i = indiceNL;
+
+                            } else {
+                                int indiceNL2 = buscarSigNL(i, tokens);
+                                i = indiceNL2 - 1;
+                                expresionSi(cont2 + 3, indiceNL2 - 1, tokens, contador);
+                            }
+                        }
+                        else{
+                        i=indiceNL-1;
+                        }
+                        
+                    }
+                    
+
+                }
+            }
+            else if (tokens[i].equals("mientras")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (tokens[cont2+2].equals("{")) {
+                    int cont3 = 1;
+                    int cont4 = cont2 + 3;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("{")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals("}")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    i=indiceNL -1;
+                    expresionWhile(cont2+3,indiceNL-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    //mover indice
+                }
+
+
+            }
+            else if(tokens[i].equals("haga")){
+                if (tokens[i+1].equals("{")) {
+                    int cont1 = 1;
+                    int cont2 = i + 2;
+                    while (cont1 != 0) {
+                        if (tokens[cont2].equals("{")) {
+                            cont1++;
+                        } else if (tokens[cont2].equals("}")) {
+                            cont1--;
+                        }
+                        cont2++;
+                    }
+                    
+                    int cont3 = 1;
+                    int cont4 = cont2 + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
+                    expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    int cont3 = 1;
+                    int cont4 = indiceNL + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,indiceNL,tokens,contador);
+                    expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+                }
+                
+            }
+
+        }
+    }
+    
+//**********************************************************************************************************************************************
+    
+    private void expresionWhile(int a, int j,int Icondicion,int Fcondicion, String[] tokens, int contador){
+        while(expresionCondicion(Icondicion,Fcondicion,tokens,contador)){
+        for (int i = a; i < j; i++) {//ciclo para armar la tabla de simbolos
+            if (tokens[i].equals("newline")) {
+                contador++;
+            } 
+            
+            else if (tokens[i].equals("=")) {
+                if (buscarSimbolo(tokens[i - 1]) == -1) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
+                } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
+                    _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
+                } else {
+                    int indiceNL = buscarSigNL(i, tokens);
+                    String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
+                    if (indiceNL == i + 2) {
+
+                        if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        } else if (tipo.equals("char")) {
+                            if (tokens[i + 1].length() == 1) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else if (tipo.equals("string")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                        } else if (tipo.equals("int")) {
+                            if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
+
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+                        } else {
+                            if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            } else {
+                                _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
+                            }
+
+                        }
+                    } else {
+                        float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        if (tipo.equals("float")) {
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                        } else if (tipo.equals("int")) {
+                            int temp2 = Float.floatToIntBits(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                        }
+                    }
+                    i += indiceNL - i - 1;
+                }
+
+            } 
+            else if (tokens[i].equals("mover")) {
+                int indiceNL = buscarSigNL(i, tokens);
+                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                    error = true;
+                    _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
+                } else {
+                    ejecutable.add(tokens[i + 1]);
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+                }
+                i += indiceNL - i - 1;
+            } 
+            else if (tokens[i].equals("si")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        i = cont4;
+
+                    } else {
+                        int indiceNL = buscarSigNL(i, tokens);
+                        i = indiceNL - 1;
+                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                    }
+
+                    /*saltarse el sino*/
+                } else {// no se cumple la condicion
+
+                    if (tokens[cont2 + 2].equals("{")) {
+                        int cont3 = 1;
+                        int cont4 = cont2 + 3;
+                        while (cont3 != 0) {
+                            if (tokens[cont4].equals("{")) {
+                                cont3++;
+                            } else if (tokens[cont4].equals("}")) {
+                                cont3--;
+                            }
+                            cont4++;
+                        }
+                        if (tokens[cont4].equals("sino")) {
+                            /*llama a declaracionesAnidadas()*/
+                            if (tokens[cont4 + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = cont4 + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
+                                i = cont4;
+
+                            } else {
+                                int indiceNL = buscarSigNL(i, tokens);
+                                i = indiceNL - 1;
+                                expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                            }
+
+
+                       } 
+                        else{
+                        i=cont4;
+                        }
+                    }
+                    else {
+                        int indiceNL = buscarSigNL(i,tokens);
+                        if(tokens[indiceNL].equals("sino")){
+                            /*llamar funcion del sino*/
+                           if (tokens[indiceNL + 1].equals("{")) {
+                                int cont5 = 1;
+                                int cont6 = indiceNL + 1;
+                                while (cont5 != 0) {
+                                    if (tokens[cont6].equals("{")) {
+                                        cont5++;
+                                    } else if (tokens[cont6].equals("}")) {
+                                        cont5--;
+                                    }
+                                    cont6++;
+                                }
+                                expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
+                                i = indiceNL;
+
+                            } else {
+                                int indiceNL2 = buscarSigNL(i, tokens);
+                                i = indiceNL2 - 1;
+                                expresionSi(cont2 + 3, indiceNL2 - 1, tokens, contador);
+                            }
+                        }
+                        else{
+                        i=indiceNL-1;
+                        }
+                        
+                    }
+                    
+
+                }
+            }
+            else if (tokens[i].equals("mientras")) {
+                int cont1 = 1;
+                int cont2 = i + 2;
+                while (cont1 != 0) {
+                    if (tokens[cont2].equals("(")) {
+                        cont1++;
+                    } else if (tokens[cont2].equals(")")) {
+                        cont1--;
+                    }
+                    cont2++;
+                }
+                if (tokens[cont2+2].equals("{")) {
+                    int cont3 = 1;
+                    int cont4 = cont2 + 3;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("{")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals("}")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    i=indiceNL -1;
+                    expresionWhile(cont2+3,indiceNL-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
+                    //mover indice
+                }
+
+
+            }
+            else if(tokens[i].equals("haga")){
+                if (tokens[i+1].equals("{")) {
+                    int cont1 = 1;
+                    int cont2 = i + 2;
+                    while (cont1 != 0) {
+                        if (tokens[cont2].equals("{")) {
+                            cont1++;
+                        } else if (tokens[cont2].equals("}")) {
+                            cont1--;
+                        }
+                        cont2++;
+                    }
+                    
+                    int cont3 = 1;
+                    int cont4 = cont2 + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
+                    expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+
+                }
+                else{
+                    int indiceNL = buscarSigNL(i,tokens);
+                    int cont3 = 1;
+                    int cont4 = indiceNL + 2;
+                    while (cont3 != 0) {
+                        if (tokens[cont4].equals("(")) {
+                            cont3++;
+                        } else if (tokens[cont4].equals(")")) {
+                            cont3--;
+                        }
+                        cont4++;
+                    }
+                    
+                    expresionSi(i+1,indiceNL,tokens,contador);
+                    expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
+                    i=cont4;
+                }
+                
+            }
+
+        }
+        }
         
+    }
+    
+    
+//**********************************************************************************************************************************************
+
+    private boolean expresionCondicion(int i, int j, String[] t, int contador) {
+        if (buscarOpRel(i, t, "<") != -1) {
+            return expresionSuma(i, buscarOpRel(i, t, "<") - 1, t, contador) < expresionSuma(buscarOpRel(i, t, "<") + 1, j, t, contador);
+        } else if (buscarOpRel(i, t, "<=") != -1) {
+            return expresionSuma(i, buscarOpRel(i, t, "<=") - 1, t, contador) <= expresionSuma(buscarOpRel(i, t, "<=") + 1, j, t, contador);
+        } else if (buscarOpRel(i, t, ">") != -1) {
+            return expresionSuma(i, buscarOpRel(i, t, ">") - 1, t, contador) > expresionSuma(buscarOpRel(i, t, ">") + 1, j, t, contador);
+        } else if (buscarOpRel(i, t, ">=") != -1) {
+            return expresionSuma(i, buscarOpRel(i, t, ">=") - 1, t, contador) >= expresionSuma(buscarOpRel(i, t, ">=") + 1, j, t, contador);
+        } else if (buscarOpRel(i, t, "==") != -1) {
+            return expresionSuma(i, buscarOpRel(i, t, "==") - 1, t, contador) == expresionSuma(buscarOpRel(i, t, "==") + 1, j, t, contador);
+        } else/* (buscarOpRel(i,t,"!=")!=-1)*/ {
+            return expresionSuma(i, buscarOpRel(i, t, "!=") - 1, t, contador) != expresionSuma(buscarOpRel(i, t, "!=") + 1, j, t, contador);
+        }
+    }
+
+    private int buscarOpRel(int n, String[] t, String op) {
+        int pos = n;
+        while (!t[pos].equals("newline")) {
+            if (t[pos].equals(op)) {
+                return pos;
+            }
+            pos++;
+        }
+        return -1;
+    }
+
+    private float expresionSuma(int i, int j, String[] t, int contador) {
+        float op1;
+
+        if (i == j) {
+            if (t[i].matches("[0-9]*.?[0-9]*")) {
+                return Float.valueOf(t[i]);
+            } else {
+                if (buscarSimbolo(t[i]) != -1) {
+                    if ((tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("int")
+                            || (tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("float")))
+                            && !tablaSimbolos.get(buscarSimbolo(t[i]))[5].equals("0")) {
+                        return Float.valueOf(tablaSimbolos.get(buscarSimbolo(t[i]))[3]);
+                    } else {
+                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida, en linea: " + String.valueOf(contador));
+                        error = true;
+                        return 0;
+                    }
+                } else {
+                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada, en linea: " + String.valueOf(contador));
+                    error = true;
+                    return 0;
+                }
+            }
+        } else if (t[i].equals("(")) {
+            int cont1 = 1;
+            int cont2 = i;
+            while (cont1 != 0) {
+
+                if (t[cont2].equals("(")) {
+                    cont1++;
+                } else if (t[cont2].equals(")")) {
+                    cont1--;
+                }
+                cont2++;
+            }
+
+            if (t[cont2 + 1].equals("+")) {
+                return (expresionSuma(i, cont2, t, contador) + expresionSuma(cont2 + 2, j, t, contador));
+            } else if (t[cont2 + 1].equals("-")) {
+                return (expresionSuma(i, cont2, t, contador) - expresionSuma(cont2 + 2, j, t, contador));
+            } else if (t[cont2 + 1].equals("/")) {
+                return (expresionSuma(i, cont2, t, contador) / expresionSuma(cont2 + 2, j, t, contador));
+            } else {// multiplicacion
+                return (expresionSuma(i, cont2, t, contador) * expresionSuma(cont2 + 2, j, t, contador));
+            }
+
+            //return expresionSuma(i,cont2,t,contador);   
+        } else {
+            if (t[i].matches("[0-9]*.?[0-9]*")) {
+                op1 = Float.valueOf(t[i]);
+                if (t[i + 1].equals("+")) {
+                    return (op1 + expresionSuma(i + 2, j, t, contador));
+                } else if (t[i + 1].equals("-")) {
+                    return (op1 - expresionSuma(i + 2, j, t, contador));
+                } else if (t[i + 1].equals("/")) {
+                    return (op1 / expresionSuma(i + 2, j, t, contador));
+                } else {// multiplicacion
+                    return (op1 * expresionSuma(i + 2, j, t, contador));
+                }
+
+            } else {
+                if (buscarSimbolo(t[i]) != -1) {
+                    if ((tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("int")
+                            || (tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("float")))
+                            && !tablaSimbolos.get(buscarSimbolo(t[i]))[5].equals("0")) {
+                        op1 = Float.valueOf(tablaSimbolos.get(buscarSimbolo(t[i]))[3]);
+
+                        if (t[i + 1].equals("+")) {
+                            return (op1 + expresionSuma(i + 2, j, t, contador));
+                        } else if (t[i + 1].equals("-")) {
+                            return (op1 - expresionSuma(i + 2, j, t, contador));
+                        } else if (t[i + 1].equals("/")) {
+                            return (op1 / expresionSuma(i + 2, j, t, contador));
+                        } else {// multiplicacion
+                            return (op1 * expresionSuma(i + 2, j, t, contador));
+                        }
+
+                    } else {
+                        _ListaErrores.insertar("Analisis semantico. Error: operacion invalida, en linea: " + String.valueOf(contador));
+                        error = true;
+                        return 0;
+                    }
+                } else {
+                    _ListaErrores.insertar("Analisis semantico. Error: variable no inicializada, en linea: " + String.valueOf(contador));
+                    error = true;
+                    return 0;
+                }
+            }
+
+        }
 
     }
 
-    public void AnalisisSintactico(String pPrueba) {//analisador sintactico
-        String entrada = pPrueba;
-        int contador = 0;
+    private int buscarSimbolo(String nombre) {
+        for (int i = 0; i < tablaSimbolos.size(); i++) {
+            if (tablaSimbolos.get(i)[1].equals(nombre)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int buscarSigNL(int n, String[] t) {
+        int pos = n;
+        while (pos < t.length) {
+            if (t[pos].equals("newline")) {
+                return pos;
+            }
+        }
+        return pos;
+    }
+
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    /**
+     * **********************************************************************************************************************
+     */
+    public void AnalisisSintactico(String pEntrada) {//analisador sintactico
+        AnalizadorLexico lexico = new AnalizadorLexico();
+        lexico.analizar(pEntrada);
+        String entrada = lexico.getResultado();
+        _ListaErrores.sumarListas(lexico.getListaErrores());
+        //int contador = 0;
         String pila = _producciones.getHead().getIzq() + " $";
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
@@ -55,31 +1064,31 @@ public class Facade {
                     getListaErrores().insertar("Analisis Sintactico.  Error: casilla nula en la tabla");
                 } else {
                     int indice = tmp.indexOf("->");
-                    tmp = tmp.substring(indice+2);
+                    tmp = tmp.substring(indice + 2);
                     if (tmp.compareTo("ñ") == 0) {
-                        pila = pila.substring(indiceEspacio+1);
+                        pila = pila.substring(indiceEspacio + 1);
                     } else {
-                        String palabra2 =palabra + " "; 
+                        String palabra2 = palabra + " ";
                         pila = pila.replaceFirst(palabra2, tmp);
                     }
                 }
             } else {
                 String terminalEnPila = extraerTerminal(pila);
                 if (terminalEnPila.compareTo(terminal) == 0) {
-                    entrada = entrada.substring(terminal.length()+1);
-                    pila = pila.substring(terminal.length()+1);
+                    entrada = entrada.substring(terminal.length() + 1);
+                    pila = pila.substring(terminal.length() + 1);
                 } else {
                     getListaErrores().insertar("Analisis Sintactico.  Error: comparacion pila-entrada FALLIDA.");
                 }
             }
         }
-        if(pila.compareTo(entrada) == 0){
+        if (pila.compareTo(entrada) == 0) {
             //"SUCCESS, Linea Valida";
-        }
-        else{
+            AnalisisSemantico(pEntrada);
+        } else {
             getListaErrores().insertar("Analisis Sintactico.  Error: valor despues de '$' en la entrada.");
         }
-        
+
     }
 
     public String extraerTerminal(String pString) {
@@ -110,7 +1119,6 @@ public class Facade {
 //            br.close();
 //        }
 //    }
-
     public void logFile(String pLog) throws FileNotFoundException, IOException {
         File log = new File("ResultadoPredictivoNoRecursivoPila.txt");
         try {
@@ -128,8 +1136,8 @@ public class Facade {
             System.out.println("ERROR AL AÑADIR REGISTRO!!");
         }
     }
-    
-    public void insertarHeaders() {   
+
+    public void insertarHeaders() {
         ListaString temporal = new ListaString();
         for (int i = 0; i < _producciones.getTam(); i++) {
             temporal.insertar(_producciones.buscarPos(i).getIzq());
@@ -142,7 +1150,7 @@ public class Facade {
             while (temporal3 != null) {
                 String ladoDerecho = temporal3.getStr();
                 while (ladoDerecho.length() > 0) {
-                    
+
                     String[] partesLadoDerecho = ladoDerecho.split("|");
                     char charAt2 = partesLadoDerecho[0].charAt(0);
                     if ((partesLadoDerecho[0].compareTo(partesLadoDerecho[0].toUpperCase()) != 0)
@@ -155,26 +1163,23 @@ public class Facade {
                             System.out.println(terminal);
                             columnas.insertar(terminal);
                         }
-                        ladoDerecho = ladoDerecho.substring(terminal.length()+1);
-                    }
-                    else{
+                        ladoDerecho = ladoDerecho.substring(terminal.length() + 1);
+                    } else {
                         int indiceEspacio = ladoDerecho.indexOf(" ", 0);
                         String terminal = ladoDerecho.substring(0, indiceEspacio);
-                        ladoDerecho = ladoDerecho.substring(terminal.length()+1);
+                        ladoDerecho = ladoDerecho.substring(terminal.length() + 1);
                     }
-                    
-                    
+
                 }
                 temporal3 = temporal3.getNext();
             }
 
-            temporal2=temporal2.getNext();
+            temporal2 = temporal2.getNext();
         }
         getTabla().setColumnas(columnas);
-        
+
     }
-    
-    
+
 //
 //    public void insertarHeaders2() {
 //        ListaString temporal = new ListaString();
@@ -230,7 +1235,6 @@ public class Facade {
 //        filas.insertar("$");
 //        getTabla().setColumnas(filas); //getTabla().setFilas(filas);
 //    }
-
     public void calcularPNR() {
         _tabla.llenarTabla(_tabla.getFilas().getTam(), _tabla.getColumnas().getTam()); //_tabla.llenarTabla(_tabla.getColumnas().getTam(), _tabla.getFilas().getTam()); 
         Produccion temporal = _producciones.getHead();
@@ -304,11 +1308,6 @@ public class Facade {
 //            return "num";
 //        }
 //    }
-    
-
-    
-    
-        
 //    public void analisisLexico() throws UnsupportedEncodingException, FileNotFoundException, IOException {
 //        String path = "Evaluaciones.txt";
 //        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path), "ISO-8859-1"));
@@ -353,7 +1352,6 @@ public class Facade {
 //
 //        in.close();
 //    }
-
     public void leerGramatica() throws UnsupportedEncodingException, FileNotFoundException, IOException {
         String path = "Gramatica.txt";
         BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path), "ISO-8859-1"));
@@ -406,14 +1404,13 @@ public class Facade {
             NodoString temporal2 = temporal.getDer().getHead();
             while (temporal2 != null) {
                 if (temporal2.getStr().indexOf(pNombre) != -1) {
-                    
-                    
-                    String cortado = temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre),temporal2.getStr().length());
+
+                    String cortado = temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre), temporal2.getStr().length());
                     int indiceEspacio = cortado.indexOf(" ", 0);
-                    String palabra = cortado.substring(0,indiceEspacio);
-                    
-                    if (temporal2.getStr().indexOf(pNombre)+palabra.length() != temporal2.getStr().length() - 1) {
-                        ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre)+palabra.length()+1));
+                    String palabra = cortado.substring(0, indiceEspacio);
+
+                    if (temporal2.getStr().indexOf(pNombre) + palabra.length() != temporal2.getStr().length() - 1) {
+                        ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre) + palabra.length() + 1));
                         if (resultadoParcial.buscarElem("ñ") == -1) {//no cumple regla 3
                             result = sumarListaString(result, resultadoParcial);
                         } else {//cumple regla 3
@@ -444,11 +1441,9 @@ public class Facade {
         int indiceEspacio = pString.indexOf(" ", 0);
         String palabra = pString.substring(0, indiceEspacio);
         //return pString.substring(0, i);
-            return palabra;
+        return palabra;
 
     }
-    
-    
 
     public ListaString getPrimeroDer(String pNombre) {
         ListaString result = new ListaString();
@@ -457,12 +1452,11 @@ public class Facade {
         char charAt2 = caracter.charAt(0);
         if (caracter.compareTo(caracter.toUpperCase()) == 0 && Character.isLetter(charAt2)) {
             int indiceEspacio = pNombre.indexOf(" ", 0);
-            if(indiceEspacio != -1){
+            if (indiceEspacio != -1) {
                 String palabra = pNombre.substring(0, indiceEspacio);
                 ListaString resultadoTemporal = getPrimero(palabra);
                 result = sumarListaString(result, resultadoTemporal);
-            }
-            else{
+            } else {
                 ListaString resultadoTemporal = getPrimero(pNombre);
                 result = sumarListaString(result, resultadoTemporal);
             }
@@ -486,7 +1480,7 @@ public class Facade {
             if (caracter.compareTo(caracter.toUpperCase()) == 0 && Character.isLetter(charAt2)) {
                 int indiceEspacio = derecha.buscarPos(contador).indexOf(" ", 0);
                 String palabra = derecha.buscarPos(contador).substring(0, indiceEspacio);
-                if(palabra.compareTo(pNombre)!=0){
+                if (palabra.compareTo(pNombre) != 0) {
                     ListaString resultadoTemporal = getPrimero(palabra);
                     result = sumarListaString(result, resultadoTemporal);
                 }
@@ -500,14 +1494,6 @@ public class Facade {
 
         return result;
     }
-    
-
-    
-    
-    
-    
-    
-    
 
     public void llenarTablaExcel(String pNombre) throws FileNotFoundException, IOException {
         Workbook wb = new HSSFWorkbook();
@@ -575,63 +1561,59 @@ public class Facade {
         _tabla = ptabla;
     }
 
-
-
 //-----------------------------------------------------------------------------------------------------------------------------------------------------//
 
     /*
      public void llenarHeadersLR(){
-         _tablaLR = new TablaLR();
+     _tablaLR = new TablaLR();
          
          
-         ListaString tmp = new ListaString();
-         for(int i=0;i<_cerraduras.getTam();i++){
-             String str = Integer.toString(i);
-             tmp.insertar(str);
-         }
-         ListaString tmp6 = new ListaString();
-         Produccion prod2 = _producciones.getHead();
-         for(int i=0;i<_producciones.getTam();i++){
-             String str = prod2.getIzq();
-             tmp6.insertar(str);
-             prod2 = prod2.getNext();
-         }
+     ListaString tmp = new ListaString();
+     for(int i=0;i<_cerraduras.getTam();i++){
+     String str = Integer.toString(i);
+     tmp.insertar(str);
+     }
+     ListaString tmp6 = new ListaString();
+     Produccion prod2 = _producciones.getHead();
+     for(int i=0;i<_producciones.getTam();i++){
+     String str = prod2.getIzq();
+     tmp6.insertar(str);
+     prod2 = prod2.getNext();
+     }
          
-         _tablaLR.setIrA(tmp6);
+     _tablaLR.setIrA(tmp6);
          
-         Produccion prod = _producciones.getHead();
-         ListaString tmp3 = new ListaString();
+     Produccion prod = _producciones.getHead();
+     ListaString tmp3 = new ListaString();
          
-//         while(prod != null){
-//             NodoString tmp2 = prod.getDer().getHead();
-//             String tmp4 = tmp2.getStr();
-//             while(tmp4!= null){
-//             
-//                 int i = 1;
-//        while (i < tmp4.length() && tmp4.substring(i, i + 1).compareTo((tmp4.substring(i, i + 1)).toLowerCase()) == 0) {
-//            i++;
-//        }
-//        tmp3.insertar(tmp4.substring(0, i));
-//        if(i<tmp4.length()){
-//            tmp4 = tmp4.substring(i);
-//        }
-//        else{
-//            tmp2.getStr();
-//            
-//        }
-//         }
-//             }
-         _tablaLR.setColumnas(tmp);
-         _tablaLR.setaccion(_resumenTablaPNR);
+     //         while(prod != null){
+     //             NodoString tmp2 = prod.getDer().getHead();
+     //             String tmp4 = tmp2.getStr();
+     //             while(tmp4!= null){
+     //             
+     //                 int i = 1;
+     //        while (i < tmp4.length() && tmp4.substring(i, i + 1).compareTo((tmp4.substring(i, i + 1)).toLowerCase()) == 0) {
+     //            i++;
+     //        }
+     //        tmp3.insertar(tmp4.substring(0, i));
+     //        if(i<tmp4.length()){
+     //            tmp4 = tmp4.substring(i);
+     //        }
+     //        else{
+     //            tmp2.getStr();
+     //            
+     //        }
+     //         }
+     //             }
+     _tablaLR.setColumnas(tmp);
+     _tablaLR.setaccion(_resumenTablaPNR);
 
      }*/
-    
-    
-    public ListaProduccion encontrarProduccion(String pProd){
+    public ListaProduccion encontrarProduccion(String pProd) {
         ListaProduccion resultado = new ListaProduccion();
         Produccion tmp = _producciones.getHead();
-        for (int i = 0; i < _producciones.getTam(); i++){
-            if(tmp.getIzq().compareTo(pProd) == 0){
+        for (int i = 0; i < _producciones.getTam(); i++) {
+            if (tmp.getIzq().compareTo(pProd) == 0) {
                 resultado.insertar(clonar(tmp));
             }
             tmp = tmp.getNext();
@@ -639,55 +1621,49 @@ public class Facade {
         //resultado.getTail().setNext(null);
         return resultado;
     }
-    
-    
-    public Produccion clonar(Produccion pprod){
+
+    public Produccion clonar(Produccion pprod) {
         ListaString der = pprod.getDer();
-        Produccion result = new Produccion(pprod.getIzq(),der);
+        Produccion result = new Produccion(pprod.getIzq(), der);
         result.setPunto(pprod.getPunto());
         return result;
     }
-    
-    
-    
-    
-    
+
     /*
     
-    public void llenarTablaExcel2(String pNombre) throws FileNotFoundException, IOException {
-        Workbook wb = new HSSFWorkbook();
-        //Workbook wb = new XSSFWorkbook();
-        CreationHelper createHelper = wb.getCreationHelper();
-        Sheet sheet = wb.createSheet(pNombre);
-        _tablaLR.getIrA()
+     public void llenarTablaExcel2(String pNombre) throws FileNotFoundException, IOException {
+     Workbook wb = new HSSFWorkbook();
+     //Workbook wb = new XSSFWorkbook();
+     CreationHelper createHelper = wb.getCreationHelper();
+     Sheet sheet = wb.createSheet(pNombre);
+     _tablaLR.getIrA()
                 
                 
                 
-        for (int i = 0; i <= _tablaLR.getFilas().getTam(); i++) {
-            Row row = sheet.createRow((short) i);
-            for (int j = 0; j <= _tablaLR.getColumnas().getTam(); j++) {
+     for (int i = 0; i <= _tablaLR.getFilas().getTam(); i++) {
+     Row row = sheet.createRow((short) i);
+     for (int j = 0; j <= _tablaLR.getColumnas().getTam(); j++) {
 
-                if (i == 0 && j != _tablaLR.getColumnas().getTam()) {
-                    Cell cell = row.createCell(j + 1);
-                    cell.setCellValue(_tablaLR.getColumnas().buscarPos(j));
-                } else {
-                    if (j == 0) {
-                        Cell cell = row.createCell(j);
+     if (i == 0 && j != _tablaLR.getColumnas().getTam()) {
+     Cell cell = row.createCell(j + 1);
+     cell.setCellValue(_tablaLR.getColumnas().buscarPos(j));
+     } else {
+     if (j == 0) {
+     Cell cell = row.createCell(j);
 
-                        cell.setCellValue(_tablaLR.getFilas().buscarPos(i - 1));
-                    } else {
-                        if (i != 0) {
-                            Cell cell = row.createCell(j);
-                            cell.setCellValue(_tablaLR.buscarEnPos(i - 1, j - 1));
-                        }
-                    }
-                }
-            }
-        }
+     cell.setCellValue(_tablaLR.getFilas().buscarPos(i - 1));
+     } else {
+     if (i != 0) {
+     Cell cell = row.createCell(j);
+     cell.setCellValue(_tablaLR.buscarEnPos(i - 1, j - 1));
+     }
+     }
+     }
+     }
+     }
     
     
-    */
-
+     */
     /**
      * @return the _ListaErrores
      */
@@ -701,6 +1677,5 @@ public class Facade {
     public void setListaErrores(ListaString _ListaErrores) {
         this._ListaErrores = _ListaErrores;
     }
-    
-    
+
 }
