@@ -1,5 +1,7 @@
 
+import java.util.ArrayList;
 import jssc.*;
+//import java.math.
 //import java.time.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,7 +61,42 @@ public class com {
     }
     
     }
+    public void esperar(Float x){
+        try {
+            Thread.sleep(Math.round(x));
+        } catch (InterruptedException ex) {
+            Logger.getLogger(com.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     
+    
+   public void intepretar(ArrayList<String> x) throws InterruptedException{
+        open();
+        for(int i=0;i<x.size();i=i+2){
+           if(x.get(i).equals("0")){
+              send("b");
+              esperar(Float.parseFloat(x.get(i+1)));
+              send("c");
+              esperar(Float.parseFloat(x.get(i+1)));
+              send("a");
+           }
+           if(x.get(i).equals("1")){
+              send("e");
+              esperar(Float.parseFloat(x.get(i+1)));
+              send("d");
+           }
+           if(x.get(i).equals("2")){
+              send("g");
+              esperar(Float.parseFloat(x.get(i+1)));
+              send("f");
+           }
+           if(x.get(i).equals("3")){
+              send("i");
+              esperar(Float.parseFloat(x.get(i+1)));
+              send("h");
+           }
+       }
+   } 
 }
     
     
