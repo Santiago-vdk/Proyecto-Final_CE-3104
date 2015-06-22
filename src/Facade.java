@@ -337,6 +337,7 @@ public class Facade {
         }
         
         if(!error){
+            System.out.println("SUCCESS, Linea Valida semanticamente");
             _comunicador.interpretar(ejecutable);
         }
 
@@ -1057,24 +1058,31 @@ public class Facade {
         _ListaErrores.sumarListas(lexico.getListaErrores());
         //int contador = 0;
         String pila = _producciones.getHead().getIzq() + " $";
+        
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
+            System.out.println("JOJO");
+            System.out.println(pila);
+            System.out.println(entrada);
+            
             if(terminal.equals("newline")){
                 contador++;
             }
             char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
                 _ListaErrores.insertar("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
+                break;
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
                 String palabra = pila.substring(0, indiceEspacio);
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
                     _ListaErrores.insertar("Analisis Sintactico. Error: casilla nula en la tabla. En linea: " + String.valueOf(contador));
+                    break;
                 } else {
                     int indice = tmp.indexOf("->");
                     tmp = tmp.substring(indice + 2);
-                    if (tmp.compareTo("ñ") == 0) {
+                    if (tmp.compareTo("ñ ") == 0) {
                         pila = pila.substring(indiceEspacio + 1);
                     } else {
                         String palabra2 = palabra + " ";
@@ -1088,11 +1096,12 @@ public class Facade {
                     pila = pila.substring(terminal.length() + 1);
                 } else {
                     _ListaErrores.insertar("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
+                    break;
                 }
             }
         }
-        if (pila.compareTo(entrada) == 0) {
-            //"SUCCESS, Linea Valida";
+        if (pila.compareTo("$") == 0 && entrada.length()==0) {
+            System.out.println("SUCCESS, Linea Valida sintacticamente");
             AnalisisSemantico(pEntrada);
         } else {
             _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
@@ -1169,7 +1178,7 @@ public class Facade {
                         int indiceEspacio = ladoDerecho.indexOf(" ", 0);
                         String terminal = ladoDerecho.substring(0, indiceEspacio);
                         if (columnas.buscarElem(terminal) == -1) {
-                            System.out.println(terminal);
+                            //System.out.println(terminal);
                             columnas.insertar(terminal);
                         }
                         ladoDerecho = ladoDerecho.substring(terminal.length() + 1);
@@ -1251,15 +1260,15 @@ public class Facade {
         while (temporal != null) {
             NodoString temporal2 = temporal.getDer().getHead();
             while (temporal2 != null) {
-                if (temporal2.getStr().compareTo("ñ") == 0) {
+                if (temporal2.getStr().compareTo("ñ ") == 0) {
                     ListaString resultadoTemporal = getSiguiente(temporal.getIzq());
-
+                       //ListaString resultadoTemporal = new ListaString(); 
                     String stringTabla = "";
                     for (int t = 0; t < resultadoTemporal.getTam(); t++) {
-                        stringTabla = stringTabla + ", " + resultadoTemporal.buscarPos(t);
+                        stringTabla = stringTabla + "," + resultadoTemporal.buscarPos(t);
                     }
                     stringTabla = stringTabla.substring(1);
-                    _resumenTablaPNR.insertar("Se calcula el SIGUIENTE de " + temporal.getIzq() + ": " + stringTabla);
+                    getResumenTablaPNR().insertar("Se calcula el SIGUIENTE de " + temporal.getIzq() + ":" + stringTabla);
 
                     ListaString parteDer = new ListaString();
                     parteDer.insertar(temporal2.getStr());
@@ -1269,15 +1278,16 @@ public class Facade {
                         resultadoTemporal.borrarElem(resultadoTemporal.getHead().getStr());
                     }
                     //Insertamos en la tabla
-                } else {
+                } 
+                else {
                     ListaString resultadoTemporal = getPrimeroDer(temporal2.getStr());
 
                     String stringTabla = "";
                     for (int t = 0; t < resultadoTemporal.getTam(); t++) {
-                        stringTabla = stringTabla + ", " + resultadoTemporal.buscarPos(t);
+                        stringTabla = stringTabla + "," + resultadoTemporal.buscarPos(t);
                     }
                     stringTabla = stringTabla.substring(1);
-                    _resumenTablaPNR.insertar("Se calcula el PRIMERO de " + temporal2.getStr() + ": " + stringTabla);
+                    getResumenTablaPNR().insertar("Se calcula el PRIMERO de " + temporal2.getStr() + ":" + stringTabla);
 
                     ListaString parteDer = new ListaString();
                     parteDer.insertar(temporal2.getStr());
@@ -1368,7 +1378,7 @@ public class Facade {
         int i = 1;
         while ((line = in.readLine()) != null) {
             if (line.indexOf("->", 0) != -1) {
-                System.out.println("Leyendo linea " + i + ": " + line);
+                //System.out.println("Leyendo linea " + i + ": " + line);
                 ListaString listaDerecha = new ListaString();
                 int before = line.indexOf("->", 0); //Indice adonde se encontro el simbolo "->"
                 String izq = line.substring(0, before);
@@ -1420,11 +1430,12 @@ public class Facade {
 
                     if (temporal2.getStr().indexOf(pNombre) + palabra.length() != temporal2.getStr().length() - 1) {
                         ListaString resultadoParcial = getPrimeroDer(temporal2.getStr().substring(temporal2.getStr().indexOf(pNombre) + palabra.length() + 1));
-                        if (resultadoParcial.buscarElem("ñ") == -1) {//no cumple regla 3
-                            result = sumarListaString(result, resultadoParcial);
+                        System.out.println("en ::");
+                        if (resultadoParcial.buscarElem("ñ ") == -1) {//no cumple regla 3
+                        result = sumarListaString(result, resultadoParcial);
                         } else {//cumple regla 3
-                            resultadoParcial.borrarElem("ñ");
-                            result = sumarListaString(result, resultadoParcial);
+                            resultadoParcial.borrarElem("ñ ");
+                            
                             if (pNombre.compareTo(temporal.getIzq()) != 0) {
                                 result = sumarListaString(result, getSiguiente(temporal.getIzq()));
                             }
@@ -1532,10 +1543,10 @@ public class Facade {
         }
 
         Sheet sheetB = wb.createSheet("B");
-        for (int i = 0; i < _resumenTablaPNR.getTam(); i++) {
+        for (int i = 0; i < getResumenTablaPNR().getTam(); i++) {
             Row row = sheetB.createRow((short) i);
             Cell cell = row.createCell(0);
-            cell.setCellValue(_resumenTablaPNR.buscarPos(i));
+            cell.setCellValue(getResumenTablaPNR().buscarPos(i));
         }
         FileOutputStream fileOut = new FileOutputStream("workbook.xls");
         wb.write(fileOut);
@@ -1685,6 +1696,13 @@ public class Facade {
      */
     public void setListaErrores(ListaString _ListaErrores) {
         this._ListaErrores = _ListaErrores;
+    }
+
+    /**
+     * @return the _resumenTablaPNR
+     */
+    public ListaString getResumenTablaPNR() {
+        return _resumenTablaPNR;
     }
 
 }
