@@ -116,7 +116,16 @@ public class Server {
                 String m = r.readLine();
                 System.out.println(m);
                 String parsed = requestParser(m);                
+                String parsedf = parsed.replaceAll("%20", " ");
+                System.out.println(parsedf);
+                Facade facade = new Facade();
+                facade.leerGramatica();
                 
+                facade.insertarHeaders();
+                
+                facade.calcularPNR();
+                facade.llenarTablaExcel(parsedf);
+                facade.AnalisisSintactico(parsedf);
                 w.write("HTTP/1.0 200 OK");
                 w.newLine();
                 w.write("Content-Type: text/html");
@@ -128,22 +137,17 @@ public class Server {
                 
                 w.write("<table border=\"1\" style=\"width:100%\">");
                 
-                
-               List<String> lista = new ArrayList<String>();
-               lista.add("Analisis semantico. Error:  incompatibles. En linea: 12");
-               lista.add("Analisis sintactico. Error: Asi incompatibles. En linea: 16");
-               lista.add("Analisis sintactico. Error: Asignacion depos incompatibles. En linea: 18");
-               lista.add("Analisis lexico. Error: Asignacion de tiincompatibles. En linea: 20");
-                for (int i = 0; i < lista.size(); i++) {
+                ListaString errores = facade.getListaErrores();
+                for (int i = 0; i < errores.getTam(); i++) {
                     //Tomo la lista con los errores
-                    int posPunto = lista.get(i).indexOf(".");
-                    String sistemaError = lista.get(i).substring(0, posPunto);
+                    int posPunto = errores.buscarPos(i).indexOf(".");
+                    String sistemaError = errores.buscarPos(i).substring(0, posPunto);
                     w.write("<tr>");
                     w.write("<td>"+ sistemaError +"</td>");
-                    int posDospuntos = lista.get(i).indexOf(":");
-                    String tipoError = lista.get(i).substring(posDospuntos, lista.get(i).indexOf(".", posDospuntos));
+                    int posDospuntos = errores.buscarPos(i).indexOf(":");
+                    String tipoError = errores.buscarPos(i).substring(posDospuntos, errores.buscarPos(i).indexOf(".", posDospuntos));
                     w.write("<td>"+ "Error" + tipoError + "." +"</td> ");
-                    String lineaError = lista.get(i).substring(lista.get(i).indexOf(".", posDospuntos) + 2, lista.get(i).length());
+                    String lineaError = errores.buscarPos(i).substring(errores.buscarPos(i).indexOf(".", posDospuntos) + 2, errores.buscarPos(i).length());
                     w.write("<td>"+ lineaError +"</td> ");
                     w.write("</tr>");
                 }
@@ -167,6 +171,7 @@ public class Server {
 
                 w.newLine();
                 w.flush();
+                
                 w.close();
                 r.close();
                 
@@ -176,6 +181,8 @@ public class Server {
                     e.printStackTrace();
                 }
             } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
