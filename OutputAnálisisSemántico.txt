@@ -1,0 +1,4 @@
+06/22/2015 6:45:34PM-mover motor numero:
+06/22/2015 6:45:34PM-0
+06/22/2015 6:45:34PM-cantidad de segundos:
+06/22/2015 6:45:34PM-5.0
