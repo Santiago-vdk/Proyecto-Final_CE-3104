@@ -14,6 +14,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -30,14 +32,16 @@ public class Server {
     SSLServerSocket serverSock = null;
     SSLSocket socket = null;
     PrintWriter out = null;
+    int usuarios;
 
     public static void main(String[] args) {
-
+        
         new Server().startServer();
     }
 
     public void startServer() {
         final ExecutorService clientProcessingPool = Executors.newFixedThreadPool(10);
+        usuarios = 0;
 
         Runnable serverTask = new Runnable() {
             @Override
@@ -51,11 +55,13 @@ public class Server {
                     //System.out.println(KeyManagerFactory.getDefaultAlgorithm());
                     //System.out.println(serverKeyManager.getProvider());
                     serverKeyManager.init(serverKeys, "password".toCharArray());
+                    
                     //load client public key
                     KeyStore clientPub = KeyStore.getInstance("JKS");
                     clientPub.load(new FileInputStream("certificates/server/clientpub.jks"), "password".toCharArray());
                     TrustManagerFactory trustManager = TrustManagerFactory.getInstance("SunX509");
                     trustManager.init(clientPub);
+                    
                     //use keys to create SSLSoket
                     SSLContext ssl = SSLContext.getInstance("TLSv1.2");
                     ssl.init(serverKeyManager.getKeyManagers(), trustManager.getTrustManagers(), SecureRandom.getInstance("SHA1PRNG"));
@@ -64,8 +70,11 @@ public class Server {
                     System.out.println("Waiting for clients to connect...");
 
                     while (true) {
-                        socket = (SSLSocket) serverSock.accept();
-                        clientProcessingPool.submit(new ClientTask(socket));
+                        if(usuarios < 1){
+                            socket = (SSLSocket) serverSock.accept();
+                            clientProcessingPool.submit(new ClientTask(socket));
+                        }
+                        
                     }
                 } catch (IOException e) {
                     System.err.println("Unable to process client request");
@@ -99,29 +108,68 @@ public class Server {
         @Override
         public void run() {
             try {
-                System.out.println("Got a client !");
-                
-                // Do whatever required to process the client's request
+                System.out.println("Cliente Conectado, Usuarios 1/1 !");
                 //send data
                 printSocketInfo(socket);
-                
                 BufferedWriter w = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 BufferedReader r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String m = r.readLine();
-                String parsed = requestParser(m);
-
+                System.out.println(m);
+                String parsed = requestParser(m);                
+                
                 w.write("HTTP/1.0 200 OK");
                 w.newLine();
                 w.write("Content-Type: text/html");
                 w.newLine();
                 w.newLine();
-                w.write("<html><title>Procesando su solicitud!</title></html>");
-                w.newLine();
-                w.write("<html><body>"+ parsed +"</body></html>");
+                w.write("<html><body>Procesando su solicitud!</body></html>");
+                w.write("<p>"+ parsed +"</p>");
+                w.write("<p>Errores: </p>");
+                
+                w.write("<table border=\"1\" style=\"width:100%\">");
+                
+                
+               List<String> lista = new ArrayList<String>();
+               lista.add("Analisis semantico. Error:  incompatibles. En linea: 12");
+               lista.add("Analisis sintactico. Error: Asi incompatibles. En linea: 16");
+               lista.add("Analisis sintactico. Error: Asignacion depos incompatibles. En linea: 18");
+               lista.add("Analisis lexico. Error: Asignacion de tiincompatibles. En linea: 20");
+                for (int i = 0; i < lista.size(); i++) {
+                    //Tomo la lista con los errores
+                    int posPunto = lista.get(i).indexOf(".");
+                    String sistemaError = lista.get(i).substring(0, posPunto);
+                    w.write("<tr>");
+                    w.write("<td>"+ sistemaError +"</td>");
+                    int posDospuntos = lista.get(i).indexOf(":");
+                    String tipoError = lista.get(i).substring(posDospuntos, lista.get(i).indexOf(".", posDospuntos));
+                    w.write("<td>"+ "Error" + tipoError + "." +"</td> ");
+                    String lineaError = lista.get(i).substring(lista.get(i).indexOf(".", posDospuntos) + 2, lista.get(i).length());
+                    w.write("<td>"+ lineaError +"</td> ");
+                    w.write("</tr>");
+                }
+                w.write("</table>");
+                w.write("<p>Tabla de Simbolos: </p>");
+                
+                /*
+                for (int i = 0; i < lista.size(); i++) {
+                    //Tomo la lista con los errores
+                    int posPunto = lista.get(i).indexOf(".");
+                    String sistemaError = lista.get(i).substring(0, posPunto);
+                    w.write("<tr>");
+                    w.write("<td>" + sistemaError + "</td>");
+                    int posDospuntos = lista.get(i).indexOf(":");
+                    String tipoError = lista.get(i).substring(posDospuntos, lista.get(i).indexOf(".", posDospuntos));
+                    w.write("<td>" + "Error" + tipoError + "." + "</td> ");
+                    String lineaError = lista.get(i).substring(lista.get(i).indexOf(".", posDospuntos) + 2, lista.get(i).length());
+                    w.write("<td>" + lineaError + "</td> ");
+                    w.write("</tr>");
+                }*/
+
                 w.newLine();
                 w.flush();
                 w.close();
                 r.close();
+                
                 try {
                     clientSocket.close();
                 } catch (IOException e) {
