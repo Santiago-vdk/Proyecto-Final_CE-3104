@@ -116,6 +116,7 @@ public class AnalizadorLexico {
                 /*codigo para meter un error en el archivo de errores*/
             }
         }
+        resultado.add("newline");
     }
     
     public void printTok()
