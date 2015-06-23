@@ -49,7 +49,7 @@ public class Facade {
     }*/
     //**********************************************************************************************************************************************
 
-    public void AnalisisSemantico(String pEntrada) throws InterruptedException {
+    public void AnalisisSemantico(String pEntrada) throws InterruptedException, IOException {
         int contador = 1;
         String[] tokens = pEntrada.split("\\s+");
         System.out.println("********************entra al semantico************************");
@@ -370,7 +370,15 @@ public class Facade {
         
         if(!error){
             System.out.println("SUCCESS, Linea Valida semanticamente");
-            System.out.println(ejecutable.get(0));
+            
+            int i = 0;
+            while(i<ejecutable.size()){
+                 logFileSemantico("mover motor numero:");
+                logFileSemantico(ejecutable.get(i));
+                 logFileSemantico("cantidad de segundos:");
+                 logFileSemantico(ejecutable.get(i+1));
+                i+=2;
+            }
             
             _comunicador.interpretar(ejecutable);
         }
@@ -1146,15 +1154,14 @@ public class Facade {
     public void AnalisisSintactico(String pEntrada) throws InterruptedException, IOException {//analisador sintactico
         int contador=1;
         AnalizadorLexico lexico = new AnalizadorLexico();
+         logFileLexico("Antes del analisis");
+        logFileLexico(pEntrada);
         lexico.analizar(pEntrada);
+         logFileLexico("Despues del analisis");
         String entrada = lexico.getResultado();
+         logFileLexico(entrada);
         _ListaErrores.sumarListas(lexico.getListaErrores());
         NodoString temp = _ListaErrores.getHead();
-        while(temp!=null){
-            if(temp.getStr()!=null){
-                logFileLexico(temp.getStr());
-            }
-        }
         //int contador = 0;
         String pila = _producciones.getHead().getIzq() + " $";
         
@@ -1170,7 +1177,6 @@ public class Facade {
             char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
                 _ListaErrores.insertar("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
-                logFileSintactico("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
                 break;
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
@@ -1178,7 +1184,6 @@ public class Facade {
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
                     _ListaErrores.insertar("Analisis Sintactico. Error: casilla nula en la tabla. En linea: " + String.valueOf(contador));
-                    logFileSintactico("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
                     break;
                 } else {
                     int indice = tmp.indexOf("->");
@@ -1197,20 +1202,17 @@ public class Facade {
                     pila = pila.substring(terminal.length() + 1);
                 } else {
                     _ListaErrores.insertar("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
-                    logFileSintactico("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
                     break;
                 }
             }
         }
         if (pila.compareTo("$") == 0 && entrada.equals("newline ")) {
             System.out.println("SUCCESS, Linea Valida sintacticamente");
-             logFileSintactico("SUCCESS, Linea Valida sintacticamente");
             
             AnalisisSemantico(pEntrada);
         } else {
             
             _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
-            logFileSintactico("SUCCESS, Linea Valida sintacticamente");
             
         }
 
@@ -1748,29 +1750,7 @@ public class Facade {
      }
      ListaString tmp6 = new ListaString();
      Produccion prod2 = _producciones.getHead();
-     for(int i=0;i<_producciones.getTam();i++){
-     String str = prod2.getIzq();
-     tmp6.insertar(str);
-     prod2 = prod2.getNext();
-     }
-         
-     _tablaLR.setIrA(tmp6);
-         
-     Produccion prod = _producciones.getHead();
-     ListaString tmp3 = new ListaString();
-         
-     //         while(prod != null){
-     //             NodoString tmp2 = prod.getDer().getHead();
-     //             String tmp4 = tmp2.getStr();
-     //             while(tmp4!= null){
-     //             
-     //                 int i = 1;
-     //        while (i < tmp4.length() && tmp4.substring(i, i + 1).compareTo((tmp4.substring(i, i + 1)).toLowerCase()) == 0) {
-     //            i++;
-     //        }
-     //        tmp3.insertar(tmp4.substring(0, i));
-     //        if(i<tmp4.length()){
-     //            tmp4 = tmp4.substring(i);
+     for(int i=0;i<_produ
      //        }
      //        else{
      //            tmp2.getStr();
