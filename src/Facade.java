@@ -43,13 +43,19 @@ public class Facade {
 
     }
     
+     
+   /* public void printErrores(){
+        for (int)
+    }*/
     //**********************************************************************************************************************************************
 
     public void AnalisisSemantico(String pEntrada) throws InterruptedException {
         int contador = 1;
         String[] tokens = pEntrada.split("\\s+");
-
+        System.out.println("********************entra al semantico************************");
         for (int i = 0; i < tokens.length; i++) {//ciclo para armar la tabla de simbolos
+            
+                System.out.println("token "+i);
             if (tokens[i].equals("newline")) {
                 contador++;
             } 
@@ -82,18 +88,21 @@ public class Facade {
                 }
 
             } else if (tokens[i].equals("=")) {
+             
                 if (buscarSimbolo(tokens[i - 1]) == -1) {
                     _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
                 } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
                     _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
                 } else {
+                    
                     int indiceNL = buscarSigNL(i, tokens);
                     String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
-                    if (indiceNL == i + 2) {
-
+                    if (indiceNL == i + 2) {     
                         if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            
                             if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -101,21 +110,26 @@ public class Facade {
                         } else if (tipo.equals("char")) {
                             if (tokens[i + 1].length() == 1) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else if (tipo.equals("string")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
+                            
                             if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
-
+     
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else {
                             if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -123,29 +137,37 @@ public class Facade {
                         }
                     } else {
                         float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        
                         if (tipo.equals("float")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
-                            int temp2 = Float.floatToIntBits(temp);
+                          
+                            int temp2 = Math.round(temp);
+                              
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         }
                     }
-                    i += indiceNL - i - 1;
+                    i = indiceNL- 1;
                 }
 
             } else if (tokens[i].equals("mover")) {
                 int indiceNL = buscarSigNL(i, tokens);
-                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                if (expresionSuma(i + 2, indiceNL-1, tokens, contador) > 120) {
                     error = true;
                     _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
                 } else {
                     ejecutable.add(tokens[i + 1]);
-                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+   
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL-1, tokens, contador)));
                 }
-                i += indiceNL - i - 1;
-            } else if (tokens[i].equals("si")) {
+                i = indiceNL - 1;
+            } 
+            else if (tokens[i].equals("si")) {
                 int cont1 = 1;
                 int cont2 = i + 2;
+
                 while (cont1 != 0) {
                     if (tokens[cont2].equals("(")) {
                         cont1++;
@@ -153,8 +175,11 @@ public class Facade {
                         cont1--;
                     }
                     cont2++;
+                    
                 }
-                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+                cont2--;
+               
+                if (expresionCondicion(i + 2, cont2-1, tokens, contador)) {//si se cumple la condicion
 
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
@@ -167,18 +192,18 @@ public class Facade {
                             }
                             cont4++;
                         }
-                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        cont4--;
+                        expresionSi(cont2 + 2, cont4 , tokens, contador);
                         i = cont4;
-
+                        cont4--;
                     } else {
                         int indiceNL = buscarSigNL(i, tokens);
                         i = indiceNL - 1;
-                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                        expresionSi(cont2 + 2, indiceNL , tokens, contador);
                     }
 
                     /*saltarse el sino*/
                 } else {// no se cumple la condicion
-
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
                         int cont4 = cont2 + 3;
@@ -190,6 +215,7 @@ public class Facade {
                             }
                             cont4++;
                         }
+                        cont4--;
                         if (tokens[cont4].equals("sino")) {
                             /*llama a declaracionesAnidadas()*/
                             if (tokens[cont4 + 1].equals("{")) {
@@ -203,6 +229,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
                                 i = cont4;
 
@@ -219,6 +246,7 @@ public class Facade {
                         }
                     }
                     else {
+                        
                         int indiceNL = buscarSigNL(i,tokens);
                         if(tokens[indiceNL].equals("sino")){
                             /*llamar funcion del sino*/
@@ -233,6 +261,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
                                 i = indiceNL;
 
@@ -262,6 +291,7 @@ public class Facade {
                     }
                     cont2++;
                 }
+                cont2--;
                 if (tokens[cont2+2].equals("{")) {
                     int cont3 = 1;
                     int cont4 = cont2 + 3;
@@ -273,6 +303,7 @@ public class Facade {
                         }
                         cont4++;
                     }
+                    cont4--;
                     expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
                     i=cont4;
 
@@ -298,7 +329,7 @@ public class Facade {
                         }
                         cont2++;
                     }
-                    
+                    cont2--;
                     int cont3 = 1;
                     int cont4 = cont2 + 2;
                     while (cont3 != 0) {
@@ -309,7 +340,7 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
                     expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
@@ -327,20 +358,24 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,indiceNL,tokens,contador);
                     expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
                 }
                 
             }
-
         }
+        
         
         if(!error){
             System.out.println("SUCCESS, Linea Valida semanticamente");
+            System.out.println(ejecutable.get(0));
+            
             _comunicador.interpretar(ejecutable);
         }
+        else 
+            System.out.println("hubo error");
 
     }
     
@@ -348,24 +383,30 @@ public class Facade {
     
     private void expresionSi(int a, int j, String[] tokens,int contador){
 
+        System.out.println("llegaaaaaaaaaaaaaaaaaa");
+        System.out.println(a);
+        System.out.println(j);
         for (int i = a; i < j; i++) {//ciclo para armar la tabla de simbolos
             if (tokens[i].equals("newline")) {
                 contador++;
             } 
             
             else if (tokens[i].equals("=")) {
+             
                 if (buscarSimbolo(tokens[i - 1]) == -1) {
                     _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
                 } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
                     _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
                 } else {
+                    
                     int indiceNL = buscarSigNL(i, tokens);
                     String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
-                    if (indiceNL == i + 2) {
-
+                    if (indiceNL == i + 2) {     
                         if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            
                             if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -373,21 +414,26 @@ public class Facade {
                         } else if (tipo.equals("char")) {
                             if (tokens[i + 1].length() == 1) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else if (tipo.equals("string")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
+                            
                             if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
-
+     
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else {
                             if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -395,31 +441,37 @@ public class Facade {
                         }
                     } else {
                         float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        
                         if (tipo.equals("float")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
-                            int temp2 = Float.floatToIntBits(temp);
+                          
+                            int temp2 = Math.round(temp);
+                              
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         }
                     }
-                    i += indiceNL - i - 1;
+                    i = indiceNL- 1;
                 }
 
-            } 
-            else if (tokens[i].equals("mover")) {
+            } else if (tokens[i].equals("mover")) {
                 int indiceNL = buscarSigNL(i, tokens);
-                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                if (expresionSuma(i + 2, indiceNL-1, tokens, contador) > 120) {
                     error = true;
                     _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
                 } else {
                     ejecutable.add(tokens[i + 1]);
-                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+   
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL-1, tokens, contador)));
                 }
-                i += indiceNL - i - 1;
+                i = indiceNL - 1;
             } 
             else if (tokens[i].equals("si")) {
                 int cont1 = 1;
                 int cont2 = i + 2;
+
                 while (cont1 != 0) {
                     if (tokens[cont2].equals("(")) {
                         cont1++;
@@ -427,8 +479,11 @@ public class Facade {
                         cont1--;
                     }
                     cont2++;
+                    
                 }
-                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+                cont2--;
+               
+                if (expresionCondicion(i + 2, cont2-1, tokens, contador)) {//si se cumple la condicion
 
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
@@ -441,18 +496,18 @@ public class Facade {
                             }
                             cont4++;
                         }
-                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        cont4--;
+                        expresionSi(cont2 + 2, cont4 , tokens, contador);
                         i = cont4;
-
+                        cont4--;
                     } else {
                         int indiceNL = buscarSigNL(i, tokens);
                         i = indiceNL - 1;
-                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                        expresionSi(cont2 + 2, indiceNL , tokens, contador);
                     }
 
                     /*saltarse el sino*/
                 } else {// no se cumple la condicion
-
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
                         int cont4 = cont2 + 3;
@@ -464,6 +519,7 @@ public class Facade {
                             }
                             cont4++;
                         }
+                        cont4--;
                         if (tokens[cont4].equals("sino")) {
                             /*llama a declaracionesAnidadas()*/
                             if (tokens[cont4 + 1].equals("{")) {
@@ -477,6 +533,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
                                 i = cont4;
 
@@ -493,6 +550,7 @@ public class Facade {
                         }
                     }
                     else {
+                        
                         int indiceNL = buscarSigNL(i,tokens);
                         if(tokens[indiceNL].equals("sino")){
                             /*llamar funcion del sino*/
@@ -507,6 +565,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
                                 i = indiceNL;
 
@@ -536,6 +595,7 @@ public class Facade {
                     }
                     cont2++;
                 }
+                cont2--;
                 if (tokens[cont2+2].equals("{")) {
                     int cont3 = 1;
                     int cont4 = cont2 + 3;
@@ -547,6 +607,7 @@ public class Facade {
                         }
                         cont4++;
                     }
+                    cont4--;
                     expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
                     i=cont4;
 
@@ -572,7 +633,7 @@ public class Facade {
                         }
                         cont2++;
                     }
-                    
+                    cont2--;
                     int cont3 = 1;
                     int cont4 = cont2 + 2;
                     while (cont3 != 0) {
@@ -583,7 +644,7 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
                     expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
@@ -601,7 +662,7 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,indiceNL,tokens,contador);
                     expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
@@ -622,18 +683,21 @@ public class Facade {
             } 
             
             else if (tokens[i].equals("=")) {
+             
                 if (buscarSimbolo(tokens[i - 1]) == -1) {
                     _ListaErrores.insertar("Analisis semantico. Error: Variable no declarada. En linea: " + String.valueOf(contador));
                 } else if (tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[4].equals("1") && !tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5].equals("0")) {
                     _ListaErrores.insertar("Analisis semantico. Error: Reasignaccion a una constante. En linea: " + String.valueOf(contador));
                 } else {
+                    
                     int indiceNL = buscarSigNL(i, tokens);
                     String tipo = tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[2];
-                    if (indiceNL == i + 2) {
-
+                    if (indiceNL == i + 2) {     
                         if (buscarSimbolo(tokens[i + 1]) != -1) {
+                            
                             if (tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[2].equals(tipo)) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tablaSimbolos.get(buscarSimbolo(tokens[i + 1]))[3];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -641,21 +705,26 @@ public class Facade {
                         } else if (tipo.equals("char")) {
                             if (tokens[i + 1].length() == 1) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else if (tipo.equals("string")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
+                            
                             if (tokens[i + 1].matches("[0-9]+")) {/*[0-9]*.?[0-9]**/
-
+     
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
                         } else {
                             if (tokens[i + 1].matches("[0-9]*.?[0-9]")) {
                                 tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = tokens[i + 1];
+                                tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                             } else {
                                 _ListaErrores.insertar("Analisis semantico. Error: asignacion de tipos incompatibles. En linea: " + String.valueOf(contador));
                             }
@@ -663,31 +732,37 @@ public class Facade {
                         }
                     } else {
                         float temp = expresionSuma(i + 1, indiceNL - 1, tokens, contador);
+                        
                         if (tipo.equals("float")) {
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         } else if (tipo.equals("int")) {
-                            int temp2 = Float.floatToIntBits(temp);
+                          
+                            int temp2 = Math.round(temp);
+                              
                             tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[3] = String.valueOf(temp2);
+                            tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5] = String.valueOf(Integer.parseInt(tablaSimbolos.get(buscarSimbolo(tokens[i - 1]))[5])+1);
                         }
                     }
-                    i += indiceNL - i - 1;
+                    i = indiceNL- 1;
                 }
 
-            } 
-            else if (tokens[i].equals("mover")) {
+            } else if (tokens[i].equals("mover")) {
                 int indiceNL = buscarSigNL(i, tokens);
-                if (expresionSuma(i + 2, indiceNL, tokens, contador) > 120) {
+                if (expresionSuma(i + 2, indiceNL-1, tokens, contador) > 120) {
                     error = true;
                     _ListaErrores.insertar("Analisis semantico. Error: tiempo mayor al permitido. En linea: " + String.valueOf(contador));
                 } else {
                     ejecutable.add(tokens[i + 1]);
-                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL, tokens, contador)));
+   
+                    ejecutable.add(String.valueOf(expresionSuma(i + 2, indiceNL-1, tokens, contador)));
                 }
-                i += indiceNL - i - 1;
+                i = indiceNL - 1;
             } 
             else if (tokens[i].equals("si")) {
                 int cont1 = 1;
                 int cont2 = i + 2;
+
                 while (cont1 != 0) {
                     if (tokens[cont2].equals("(")) {
                         cont1++;
@@ -695,8 +770,11 @@ public class Facade {
                         cont1--;
                     }
                     cont2++;
+                    
                 }
-                if (expresionCondicion(i + 1, i + cont2, tokens, contador)) {//si se cumple la condicion
+                cont2--;
+               
+                if (expresionCondicion(i + 2, cont2-1, tokens, contador)) {//si se cumple la condicion
 
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
@@ -709,18 +787,18 @@ public class Facade {
                             }
                             cont4++;
                         }
-                        expresionSi(cont2 + 3, cont4 - 1, tokens, contador);
+                        cont4--;
+                        expresionSi(cont2 + 2, cont4 , tokens, contador);
                         i = cont4;
-
+                        cont4--;
                     } else {
                         int indiceNL = buscarSigNL(i, tokens);
                         i = indiceNL - 1;
-                        expresionSi(cont2 + 3, indiceNL - 1, tokens, contador);
+                        expresionSi(cont2 + 2, indiceNL , tokens, contador);
                     }
 
                     /*saltarse el sino*/
                 } else {// no se cumple la condicion
-
                     if (tokens[cont2 + 2].equals("{")) {
                         int cont3 = 1;
                         int cont4 = cont2 + 3;
@@ -732,6 +810,7 @@ public class Facade {
                             }
                             cont4++;
                         }
+                        cont4--;
                         if (tokens[cont4].equals("sino")) {
                             /*llama a declaracionesAnidadas()*/
                             if (tokens[cont4 + 1].equals("{")) {
@@ -745,6 +824,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(cont4 + 2, cont2 - 1, tokens, contador);
                                 i = cont4;
 
@@ -761,6 +841,7 @@ public class Facade {
                         }
                     }
                     else {
+                        
                         int indiceNL = buscarSigNL(i,tokens);
                         if(tokens[indiceNL].equals("sino")){
                             /*llamar funcion del sino*/
@@ -775,6 +856,7 @@ public class Facade {
                                     }
                                     cont6++;
                                 }
+                                cont6--;
                                 expresionSi(indiceNL + 2, cont2 - 1, tokens, contador);
                                 i = indiceNL;
 
@@ -804,6 +886,7 @@ public class Facade {
                     }
                     cont2++;
                 }
+                cont2--;
                 if (tokens[cont2+2].equals("{")) {
                     int cont3 = 1;
                     int cont4 = cont2 + 3;
@@ -815,6 +898,7 @@ public class Facade {
                         }
                         cont4++;
                     }
+                    cont4--;
                     expresionWhile(cont2+3,cont4-1,i+3,cont2-1,tokens,contador);//llamar a funcion while
                     i=cont4;
 
@@ -840,7 +924,7 @@ public class Facade {
                         }
                         cont2++;
                     }
-                    
+                    cont2--;
                     int cont3 = 1;
                     int cont4 = cont2 + 2;
                     while (cont3 != 0) {
@@ -851,7 +935,7 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,cont2,tokens,contador);//llamar a funcion if
                     expresionWhile(i+1,cont2-1,cont2+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
@@ -869,7 +953,7 @@ public class Facade {
                         }
                         cont4++;
                     }
-                    
+                    cont4--;
                     expresionSi(i+1,indiceNL,tokens,contador);
                     expresionWhile(i+1,indiceNL-1,indiceNL+3,cont4-1,tokens,contador);//llamar a funcion while
                     i=cont4;
@@ -886,7 +970,9 @@ public class Facade {
 //**********************************************************************************************************************************************
 
     private boolean expresionCondicion(int i, int j, String[] t, int contador) {
+        
         if (buscarOpRel(i, t, "<") != -1) {
+            
             return expresionSuma(i, buscarOpRel(i, t, "<") - 1, t, contador) < expresionSuma(buscarOpRel(i, t, "<") + 1, j, t, contador);
         } else if (buscarOpRel(i, t, "<=") != -1) {
             return expresionSuma(i, buscarOpRel(i, t, "<=") - 1, t, contador) <= expresionSuma(buscarOpRel(i, t, "<=") + 1, j, t, contador);
@@ -947,6 +1033,7 @@ public class Facade {
                 }
                 cont2++;
             }
+            cont2--;
 
             if (t[cont2 + 1].equals("+")) {
                 return (expresionSuma(i, cont2, t, contador) + expresionSuma(cont2 + 2, j, t, contador));
@@ -962,6 +1049,7 @@ public class Facade {
         } else {
             if (t[i].matches("[0-9]*.?[0-9]*")) {
                 op1 = Float.valueOf(t[i]);
+                
                 if (t[i + 1].equals("+")) {
                     return (op1 + expresionSuma(i + 2, j, t, contador));
                 } else if (t[i + 1].equals("-")) {
@@ -973,13 +1061,16 @@ public class Facade {
                 }
 
             } else {
+                
                 if (buscarSimbolo(t[i]) != -1) {
+                    
                     if ((tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("int")
                             || (tablaSimbolos.get(buscarSimbolo(t[i]))[2].equals("float")))
                             && !tablaSimbolos.get(buscarSimbolo(t[i]))[5].equals("0")) {
                         op1 = Float.valueOf(tablaSimbolos.get(buscarSimbolo(t[i]))[3]);
-
+                        
                         if (t[i + 1].equals("+")) {
+                           
                             return (op1 + expresionSuma(i + 2, j, t, contador));
                         } else if (t[i + 1].equals("-")) {
                             return (op1 - expresionSuma(i + 2, j, t, contador));
@@ -1020,6 +1111,7 @@ public class Facade {
             if (t[pos].equals("newline")) {
                 return pos;
             }
+            pos++;
         }
         return pos;
     }
