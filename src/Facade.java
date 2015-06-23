@@ -1051,20 +1051,26 @@ public class Facade {
     /**
      * **********************************************************************************************************************
      */
-    public void AnalisisSintactico(String pEntrada) throws InterruptedException {//analisador sintactico
+    public void AnalisisSintactico(String pEntrada) throws InterruptedException, IOException {//analisador sintactico
         int contador=1;
         AnalizadorLexico lexico = new AnalizadorLexico();
         lexico.analizar(pEntrada);
         String entrada = lexico.getResultado();
         _ListaErrores.sumarListas(lexico.getListaErrores());
+        NodoString temp = _ListaErrores.getHead();
+        while(temp!=null){
+            if(temp.getStr()!=null){
+                logFileLexico(temp.getStr());
+            }
+        }
         //int contador = 0;
         String pila = _producciones.getHead().getIzq() + " $";
         
         while (pila.compareTo("$") != 0) {
             String terminal = extraerTerminal(entrada);
-            System.out.println("JOJO");
-            System.out.println(pila);
-            System.out.println(entrada);
+            logFileSintactico("***************************************************************************************");
+            logFileSintactico(pila);
+            logFileSintactico(entrada);
             
             if(terminal.equals("newline")){
                 contador++;
@@ -1072,16 +1078,15 @@ public class Facade {
             char charAt2 = pila.substring(0, 1).charAt(0);
             if (terminal.compareTo("-1") == 0) {
                 _ListaErrores.insertar("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
+                logFileSintactico("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
                 break;
             } else if ((pila.substring(0, 1).compareTo(pila.substring(0, 1).toUpperCase()) == 0) && Character.isLetter(charAt2)) {
                 int indiceEspacio = pila.indexOf(" ", 0);
                 String palabra = pila.substring(0, indiceEspacio);
-                System.out.println(palabra);
-                System.out.println(terminal);
                 String tmp = _tabla.buscarEnPos(_tabla.getFilas().buscarElem(palabra), _tabla.getColumnas().buscarElem(terminal));
                 if (tmp.compareTo("♥") == 0) {
                     _ListaErrores.insertar("Analisis Sintactico. Error: casilla nula en la tabla. En linea: " + String.valueOf(contador));
-                    System.out.println("Error: corazon. En linea: " + String.valueOf(contador));
+                    logFileSintactico("Analisis Sintactico. Error: terminal desconocido. En linea: " + String.valueOf(contador));
                     break;
                 } else {
                     int indice = tmp.indexOf("->");
@@ -1100,21 +1105,21 @@ public class Facade {
                     pila = pila.substring(terminal.length() + 1);
                 } else {
                     _ListaErrores.insertar("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
-                    System.out.println("Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
+                    logFileSintactico("Analisis Sintactico. Error: comparacion pila-entrada fallida. En linea: " + String.valueOf(contador));
                     break;
                 }
             }
         }
-        System.out.println(pila);
-        System.out.println(entrada);
         if (pila.compareTo("$") == 0 && entrada.equals("newline ")) {
             System.out.println("SUCCESS, Linea Valida sintacticamente");
+             logFileSintactico("SUCCESS, Linea Valida sintacticamente");
+            
             AnalisisSemantico(pEntrada);
         } else {
             
-            System.out.println("error");
             _ListaErrores.insertar("Analisis Sintactico. Error: valor despues de '$' en la entrada. En linea: " + String.valueOf(contador));
-            System.out.println("Error: valor depues de $. En linea: " + String.valueOf(contador));
+            logFileSintactico("SUCCESS, Linea Valida sintacticamente");
+            
         }
 
     }
@@ -1149,8 +1154,44 @@ public class Facade {
 //            br.close();
 //        }
 //    }
-    public void logFile(String pLog) throws FileNotFoundException, IOException {
-        File log = new File("ResultadoPredictivoNoRecursivoPila.txt");
+    public void logFileLexico(String pLog) throws FileNotFoundException, IOException {
+        File log = new File("OutputAnálisisLéxico.txt");
+        try {
+            if (log.exists() == false) {
+                System.out.println("Se ha creado un nuevo archivo para registros.");
+                log.createNewFile();
+            }
+            try (PrintWriter out = new PrintWriter(new FileWriter(log, true))) {
+                Date date = new Date();
+                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ssa");
+                String formattedDate = sdf.format(date);
+                out.append(formattedDate + "-" + pLog + "\r\n");
+            }
+        } catch (IOException e) {
+            System.out.println("ERROR AL AÑADIR REGISTRO!!");
+        }
+    }
+    
+    public void logFileSintactico(String pLog) throws FileNotFoundException, IOException {
+        File log = new File("OutputAnálisisSintáctico.txt");
+        try {
+            if (log.exists() == false) {
+                System.out.println("Se ha creado un nuevo archivo para registros.");
+                log.createNewFile();
+            }
+            try (PrintWriter out = new PrintWriter(new FileWriter(log, true))) {
+                Date date = new Date();
+                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ssa");
+                String formattedDate = sdf.format(date);
+                out.append(formattedDate + "-" + pLog + "\r\n");
+            }
+        } catch (IOException e) {
+            System.out.println("ERROR AL AÑADIR REGISTRO!!");
+        }
+    }
+    
+    public void logFileSemantico(String pLog) throws FileNotFoundException, IOException {
+        File log = new File("OutputAnálisisSemántico.txt");
         try {
             if (log.exists() == false) {
                 System.out.println("Se ha creado un nuevo archivo para registros.");
